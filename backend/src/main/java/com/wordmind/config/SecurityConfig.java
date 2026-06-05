@@ -59,7 +59,7 @@ public class SecurityConfig {
             .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
             .authorizeRequests()
-                .antMatchers("/api/auth/**", "/api/health", "/h2-console/**").permitAll()
+                .antMatchers("/api/auth/**", "/api/health", "/h2-console/**", "/api/public/**").permitAll()
                 .antMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             .and()

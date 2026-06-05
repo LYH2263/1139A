@@ -29,4 +29,34 @@ public interface QuizRecordRepository extends JpaRepository<QuizRecord, Long> {
 
     @Query("SELECT qr FROM QuizRecord qr WHERE qr.userId = :userId AND qr.createdAt >= :startDate ORDER BY qr.createdAt ASC")
     List<QuizRecord> findByUserIdAndCreatedAtAfter(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate);
+
+    @Query("SELECT COUNT(qr) FROM QuizRecord qr WHERE qr.userId = :userId " +
+           "AND qr.createdAt >= :startDate AND qr.createdAt < :endDate")
+    Long countByUserIdAndDateRange(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT AVG(qr.score) FROM QuizRecord qr WHERE qr.userId = :userId " +
+           "AND qr.createdAt >= :startDate AND qr.createdAt < :endDate")
+    Double calculateAverageScoreByUserIdAndDateRange(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT SUM(qr.duration) FROM QuizRecord qr WHERE qr.userId = :userId " +
+           "AND qr.createdAt >= :startDate AND qr.createdAt < :endDate")
+    Long sumDurationByUserIdAndDateRange(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT qr FROM QuizRecord qr WHERE qr.userId = :userId " +
+           "AND qr.createdAt >= :startDate AND qr.createdAt < :endDate " +
+           "AND qr.wrongWordIds IS NOT NULL AND qr.wrongWordIds <> '' " +
+           "ORDER BY qr.createdAt DESC")
+    List<QuizRecord> findWithWrongWordsByUserIdAndDateRange(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
 }

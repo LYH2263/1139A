@@ -225,3 +225,49 @@ export interface StudyPlan {
   planType: string
   createdAt: string
 }
+
+export interface WordErrorItem {
+  wordId: number
+  word: string
+  meaning: string
+  errorCount: number
+}
+
+export interface ReportResponse {
+  startDate: string
+  endDate: string
+  totalStudyMinutes: number
+  reviewedWordsCount: number
+  quizCount: number
+  averageScore: number
+  proficiencyDistribution: Record<number, number>
+  topErrorWords: WordErrorItem[]
+  continuityScore: number
+  username: string
+}
+
+export interface ReportRequest {
+  timeRange: 'WEEK' | 'MONTH' | 'CUSTOM'
+  startDate?: string
+  endDate?: string
+}
+
+export interface ShareRequest {
+  startDate: string
+  endDate: string
+  reportData: string
+}
+
+export interface ShareResponse {
+  token: string
+  shareUrl: string
+  expiresAt: string
+}
+
+export interface PublicReportResponse {
+  reportData: string
+  startDate: string
+  endDate: string
+  username: string
+  createdAt: string
+}

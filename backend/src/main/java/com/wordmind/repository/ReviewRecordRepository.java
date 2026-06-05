@@ -26,4 +26,33 @@ public interface ReviewRecordRepository extends JpaRepository<ReviewRecord, Long
     @Query("SELECT COUNT(rr) FROM ReviewRecord rr WHERE rr.userId = :userId AND " +
            "rr.createdAt >= :startOfDay AND rr.createdAt < :endOfDay")
     Long countTodayReviewsByUserId(@Param("userId") Long userId, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
+
+    @Query("SELECT COUNT(DISTINCT rr.wordId) FROM ReviewRecord rr WHERE rr.userId = :userId " +
+           "AND rr.createdAt >= :startDate AND rr.createdAt < :endDate")
+    Long countDistinctWordsByUserIdAndDateRange(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT rr.proficiency, COUNT(rr) FROM ReviewRecord rr WHERE rr.userId = :userId " +
+           "AND rr.createdAt >= :startDate AND rr.createdAt < :endDate " +
+           "GROUP BY rr.proficiency ORDER BY rr.proficiency")
+    List<Object[]> countProficiencyDistribution(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT COUNT(DISTINCT DATE(rr.createdAt)) FROM ReviewRecord rr WHERE rr.userId = :userId " +
+           "AND rr.createdAt >= :startDate AND rr.createdAt < :endDate")
+    Long countActiveDays(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT rr FROM ReviewRecord rr WHERE rr.userId = :userId " +
+           "AND rr.createdAt >= :startDate AND rr.createdAt < :endDate ORDER BY rr.createdAt ASC")
+    List<ReviewRecord> findByUserIdAndDateRange(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
 }

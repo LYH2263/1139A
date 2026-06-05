@@ -11,6 +11,12 @@ const router = createRouter({
       meta: { public: true }
     },
     {
+      path: '/public/report/:token',
+      name: 'PublicReport',
+      component: () => import('@/views/PublicReportView.vue'),
+      meta: { public: true }
+    },
+    {
       path: '/',
       name: 'Layout',
       component: () => import('@/views/LayoutView.vue'),
@@ -67,8 +73,22 @@ const router = createRouter({
         {
           path: 'records',
           name: 'Records',
-          component: () => import('@/views/RecordsView.vue'),
-          meta: { title: '学习记录' }
+          redirect: '/records/plans',
+          meta: { title: '学习记录' },
+          children: [
+            {
+              path: 'plans',
+              name: 'RecordsPlans',
+              component: () => import('@/views/RecordsView.vue'),
+              meta: { title: '学习计划' }
+            },
+            {
+              path: 'report',
+              name: 'RecordsReport',
+              component: () => import('@/views/ReportView.vue'),
+              meta: { title: '学习报告' }
+            }
+          ]
         },
         {
           path: 'admin',

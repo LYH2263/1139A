@@ -1,5 +1,5 @@
 import api from './request'
-import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan, LearningPathResponse, MistakesResponse, WeaknessAnalysisResponse, QuizMode, QuizAnswer } from '@/types'
+import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan, LearningPathResponse, MistakesResponse, WeaknessAnalysisResponse, QuizMode, QuizAnswer, ReportResponse, ReportRequest, ShareResponse, ShareRequest, PublicReportResponse } from '@/types'
 
 export const mindMapApi = {
   getMindMap: (wordId: number, depth: number = 1): Promise<MindMapResponse> => {
@@ -51,5 +51,17 @@ export const statsApi = {
 
   createStudyPlan: (wordId: number, planType: string): Promise<StudyPlan> => {
     return api.post('/study-plans', { wordId, planType })
+  },
+
+  generateReport: (request: ReportRequest): Promise<ReportResponse> => {
+    return api.post('/stats/report', request)
+  },
+
+  createShare: (request: ShareRequest): Promise<ShareResponse> => {
+    return api.post('/stats/share', request)
+  },
+
+  getPublicReport: (token: string): Promise<PublicReportResponse> => {
+    return api.get(`/public/report/${token}`)
   }
 }

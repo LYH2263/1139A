@@ -7,7 +7,7 @@
     
     <div class="records-content">
       <SectionCard class="records-card" :body-style="{ padding: '0' }">
-        <el-tabs v-model="activeTab" class="custom-tabs">
+        <el-tabs v-model="activeTab" class="custom-tabs" @tab-change="handleTabChange">
           <el-tab-pane label="学习计划" name="plans">
             <div class="table-container">
               <el-table 
@@ -56,6 +56,9 @@
               </el-table>
             </div>
           </el-tab-pane>
+          <el-tab-pane label="学习报告" name="report">
+            <router-view />
+          </el-tab-pane>
         </el-tabs>
       </SectionCard>
     </div>
@@ -63,8 +66,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import type { StudyPlan } from '@/types'
 import { statsApi } from '@/api/study'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -72,9 +75,23 @@ import SectionCard from '@/components/ui/SectionCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const activeTab = ref('plans')
 const studyPlans = ref<StudyPlan[]>([])
+
+const getActiveTabFromRoute = () => {
+  if (route.path.includes('/records/report')) return 'report'
+  return 'plans'
+}
+
+const handleTabChange = (tab: string) => {
+  if (tab === 'plans') {
+    router.push('/records/plans')
+  } else if (tab === 'report') {
+    router.push('/records/report')
+  }
+}
 
 const fetchStudyPlans = async () => {
   loading.value = true
@@ -87,6 +104,10 @@ const fetchStudyPlans = async () => {
     loading.value = false
   }
 }
+
+watch(() => route.path, () => {
+  activeTab.value = getActiveTabFromRoute()
+}, { immediate: true })
 
 onMounted(() => {
   fetchStudyPlans()
