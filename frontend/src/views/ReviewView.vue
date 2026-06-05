@@ -1,7 +1,7 @@
 <template>
   <div class="review-page page-container">
     <PageHeader title="今日复习" subtitle="基于艾宾浩斯曲线智能安排复习计划。">
-      <template #action>
+      <template #actions>
         <el-dropdown @command="handleModeChange" trigger="click">
           <el-button>
             <el-icon><Setting /></el-icon>
@@ -535,16 +535,20 @@ const handleModeChange = async (mode: string) => {
 
 const submitReview = async (result: string) => {
   if (!currentWord.value) return
+  const currentWordId = currentWord.value.wordId
   
   try {
     const response = await reviewApi.submitReview(
-      currentWord.value.wordId, 
+      currentWordId, 
       result, 
       sessionId.value
     )
     
-    if (response.removedFromQueue) {
-      removedWords.value.add(currentWord.value.wordId)
+    const wasRemoved = response.removedFromQueue
+    const wasAdded = response.addedToQueueEnd
+    
+    if (wasRemoved) {
+      removedWords.value.add(currentWordId)
       showNotification(
         'success', 
         '🎉 已掌握', 
@@ -552,7 +556,7 @@ const submitReview = async (result: string) => {
       )
     }
     
-    if (response.addedToQueueEnd) {
+    if (wasAdded) {
       reviewList.value.push({ ...currentWord.value, marked: false })
       showNotification(
         'warning', 
@@ -562,7 +566,9 @@ const submitReview = async (result: string) => {
     }
     
     if (reviewMode.value === 'CARD' || reviewMode.value === 'DICTATION') {
-      currentIndex.value++
+      if (!wasRemoved) {
+        currentIndex.value++
+      }
       showAnswer.value = false
       resetDictationState()
       
