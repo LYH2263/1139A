@@ -2,7 +2,6 @@ import api from './request'
 import type { 
   MindMapResponse, 
   TodayReviewResponse, 
-  ReviewRecord, 
   QuizStartResponse, 
   QuizSubmitResponse, 
   StatsResponse, 
@@ -19,8 +18,14 @@ import type {
   PublicReportResponse,
   SubmitReviewResponse,
   SessionStats,
-  ReviewSettingsRequest,
-  ReviewSettingsResponse
+  ReviewSettingsResponse,
+  StudySchedule,
+  StudyScheduleDetail,
+  TodayScheduleResponse,
+  ScheduleListResponse,
+  CreateScheduleRequest,
+  UpdateScheduleRequest,
+  CompleteTodayRequest
 } from '@/types'
 
 export const mindMapApi = {
@@ -97,5 +102,39 @@ export const statsApi = {
 
   getPublicReport: (token: string): Promise<PublicReportResponse> => {
     return api.get(`/public/report/${token}`)
+  }
+}
+
+export const scheduleApi = {
+  createSchedule: (request: CreateScheduleRequest): Promise<StudySchedule> => {
+    return api.post('/schedules', request)
+  },
+
+  updateSchedule: (id: number, request: UpdateScheduleRequest): Promise<StudySchedule> => {
+    return api.put(`/schedules/${id}`, request)
+  },
+
+  deleteSchedule: (id: number): Promise<void> => {
+    return api.delete(`/schedules/${id}`)
+  },
+
+  getSchedules: (): Promise<ScheduleListResponse> => {
+    return api.get('/schedules')
+  },
+
+  getScheduleDetail: (id: number): Promise<StudyScheduleDetail> => {
+    return api.get(`/schedules/${id}`)
+  },
+
+  getTodaySchedule: (id: number): Promise<TodayScheduleResponse> => {
+    return api.get(`/schedules/${id}/today`)
+  },
+
+  getTodayAllSchedules: (): Promise<TodayScheduleResponse[]> => {
+    return api.get('/schedules/today')
+  },
+
+  completeToday: (id: number, request: CompleteTodayRequest): Promise<TodayScheduleResponse> => {
+    return api.post(`/schedules/${id}/complete`, request)
   }
 }

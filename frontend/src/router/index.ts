@@ -97,6 +97,12 @@ const router = createRouter({
           ]
         },
         {
+          path: 'schedule',
+          name: 'Schedule',
+          component: () => import('@/views/ScheduleView.vue'),
+          meta: { title: '学习计划' }
+        },
+        {
           path: 'admin',
           name: 'Admin',
           component: () => import('@/views/AdminView.vue'),
@@ -107,7 +113,7 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const userStore = useUserStore()
   
   if (!to.meta.public && !userStore.isLoggedIn) {

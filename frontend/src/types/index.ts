@@ -379,3 +379,80 @@ export interface StatsResponse {
   streakDays: number
   wordBookProgress?: WordBookProgress[]
 }
+
+export type ScheduleStatus = 'ACTIVE' | 'COMPLETED' | 'PAUSED'
+
+export interface ScheduleWord {
+  id: number
+  word: string
+  phonetic?: string
+  meaning: string
+  example?: string
+  isReview: boolean
+  reviewDay: number
+}
+
+export interface GanttBar {
+  date: string
+  dayIndex: number
+  newWordCount: number
+  reviewWordCount: number
+  totalCount: number
+  completedCount: number
+  completed: boolean
+}
+
+export interface StudySchedule {
+  id: number
+  name: string
+  totalWords: number
+  dailyCount: number
+  startDate: string
+  endDate: string
+  status: ScheduleStatus
+  createdAt: string
+  completedDays: number
+  totalDays: number
+  progress: number
+}
+
+export interface StudyScheduleDetail extends StudySchedule {
+  targetWordIds: number[]
+  ganttData: GanttBar[]
+}
+
+export interface TodayScheduleResponse {
+  scheduleId: number
+  scheduleName: string
+  date: string
+  plannedWords: ScheduleWord[]
+  completedWordIds: number[]
+  completed: boolean
+}
+
+export interface ScheduleListResponse {
+  activeSchedules: StudySchedule[]
+  completedSchedules: StudySchedule[]
+  pausedSchedules: StudySchedule[]
+}
+
+export interface CreateScheduleRequest {
+  name: string
+  targetWordIds: number[]
+  dailyCount: number
+  startDate: string
+  endDate: string
+}
+
+export interface UpdateScheduleRequest {
+  name?: string
+  targetWordIds?: number[]
+  dailyCount?: number
+  startDate?: string
+  endDate?: string
+  status?: string
+}
+
+export interface CompleteTodayRequest {
+  completedWordIds: number[]
+}
