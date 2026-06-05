@@ -175,6 +175,10 @@ public class QuizService {
                 .map(Word::getId)
                 .map(String::valueOf)
                 .collect(Collectors.joining(",")));
+        record.setAllWordIds(words.stream()
+                .map(Word::getId)
+                .map(String::valueOf)
+                .collect(Collectors.joining(",")));
         quizRecordRepository.save(record);
 
         // 清理会话
@@ -289,20 +293,34 @@ public class QuizService {
     }
     
     public QuizDTO.MistakesResponse getMistakes(Long userId, int page, int size, String pos) {
-        List<QuizRecord> records = quizRecordRepository.findAllWithWrongWordsByUserId(userId);
+        List<QuizRecord> records = quizRecordRepository.findByUserIdOrderByCreatedAtDesc(userId);
         
         Map<Long, WordMistakeStats> mistakeStats = buildMistakeStats(records);
         
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.plusDays(1).atStartOfDay();
         List<Long> todayReviewWordIds = studyPlanRepository.findByUserId(userId).stream()
-                .filter(sp -> sp.getPlanType() == StudyPlan.PlanType.TODAY)
+                .filter(sp -> sp.getPlanType() == StudyPlan.PlanType.TODAY
+                        && sp.getCreatedAt() != null
+                        && !sp.getCreatedAt().isBefore(startOfDay)
+                        && sp.getCreatedAt().isBefore(endOfDay))
                 .map(StudyPlan::getWordId)
                 .collect(Collectors.toList());
         
         List<QuizDTO.MistakeItem> allItems = mistakeStats.values().stream()
+                .filter(stat -> stat.getErrorCount() > 0)
                 .filter(stat -> pos == null || pos.isEmpty() || 
                         (stat.getWord() != null && pos.equals(stat.getWord().getPos())))
-                .sorted((a, b) -> Integer.compare(b.getErrorCount(), a.getErrorCount()))
+                .sorted((a, b) -> {
+                    int cmp = Integer.compare(b.getErrorCount(), a.getErrorCount());
+                    if (cmp != 0) return cmp;
+                    if (a.getLastErrorTime() == null) return 1;
+                    if (b.getLastErrorTime() == null) return -1;
+                    return b.getLastErrorTime().compareTo(a.getLastErrorTime());
+                })
                 .map(stat -> convertToMistakeItem(stat, todayReviewWordIds))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         
         int start = page * size;
@@ -327,10 +345,18 @@ public class QuizService {
             LocalDateTime recordTime = record.getCreatedAt();
             LocalDate recordDate = recordTime.toLocalDate();
             
-            Set<Long> wrongWordIds = parseWrongWordIds(record.getWrongWordIds());
-            Set<Long> allWordIdsInQuiz = new HashSet<>();
-            for (int i = 0; i < record.getTotalCount(); i++) {
-                allWordIdsInQuiz.add((long) (i + 1));
+            Set<Long> wrongWordIds = parseWordIds(record.getWrongWordIds());
+            Set<Long> allWordIds = parseWordIds(record.getAllWordIds());
+            
+            if (allWordIds.isEmpty()) {
+                allWordIds = new HashSet<>(wrongWordIds);
+            }
+            
+            Set<Long> correctWordIds = new HashSet<>();
+            for (Long wordId : allWordIds) {
+                if (!wrongWordIds.contains(wordId)) {
+                    correctWordIds.add(wordId);
+                }
             }
             
             for (Long wordId : wrongWordIds) {
@@ -344,40 +370,34 @@ public class QuizService {
                 wordStats.updateLastErrorTime(recordTime);
                 wordStats.addAttempt(recordDate, false);
             }
-        }
-        
-        for (QuizRecord record : records) {
-            LocalDate recordDate = record.getCreatedAt().toLocalDate();
-            Set<Long> wrongWordIds = parseWrongWordIds(record.getWrongWordIds());
-            Set<Long> allWordIds = parseAllWordIds(record, wrongWordIds);
             
-            for (Long wordId : allWordIds) {
-                if (!wrongWordIds.contains(wordId)) {
-                    WordMistakeStats wordStats = stats.get(wordId);
-                    if (wordStats != null) {
-                        wordStats.addAttempt(recordDate, true);
-                    }
-                }
+            for (Long wordId : correctWordIds) {
+                Word word = wordCache.computeIfAbsent(wordId, id -> 
+                        wordRepository.findById(id).orElse(null));
+                
+                WordMistakeStats wordStats = stats.computeIfAbsent(wordId, id -> 
+                        new WordMistakeStats(word));
+                
+                wordStats.addAttempt(recordDate, true);
             }
         }
         
         return stats;
     }
     
-    private Set<Long> parseWrongWordIds(String wrongWordIds) {
-        if (wrongWordIds == null || wrongWordIds.isEmpty()) {
+    private Set<Long> parseWordIds(String wordIdsStr) {
+        if (wordIdsStr == null || wordIdsStr.isEmpty()) {
             return Collections.emptySet();
         }
-        return Arrays.stream(wrongWordIds.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(Long::parseLong)
-                .collect(Collectors.toSet());
-    }
-    
-    private Set<Long> parseAllWordIds(QuizRecord record, Set<Long> wrongWordIds) {
-        Set<Long> allIds = new HashSet<>(wrongWordIds);
-        return allIds;
+        try {
+            return Arrays.stream(wordIdsStr.split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(Long::parseLong)
+                    .collect(Collectors.toSet());
+        } catch (NumberFormatException e) {
+            return Collections.emptySet();
+        }
     }
     
     private QuizDTO.MistakeItem convertToMistakeItem(WordMistakeStats stats, List<Long> todayReviewWordIds) {
@@ -454,7 +474,7 @@ public class QuizService {
     }
     
     public QuizDTO.WeaknessAnalysisResponse getWeaknessAnalysis(Long userId) {
-        List<QuizRecord> records = quizRecordRepository.findAllWithWrongWordsByUserId(userId);
+        List<QuizRecord> records = quizRecordRepository.findByUserIdOrderByCreatedAtDesc(userId);
         Map<Long, WordMistakeStats> mistakeStats = buildMistakeStats(records);
         
         Map<String, PosStats> posStatsMap = new HashMap<>();
@@ -466,6 +486,7 @@ public class QuizService {
         for (WordMistakeStats stats : mistakeStats.values()) {
             Word word = stats.getWord();
             if (word == null) continue;
+            if (stats.getErrorCount() <= 0) continue;
             
             String pos = word.getPos() != null ? word.getPos() : "unknown";
             int errorCount = stats.getErrorCount();

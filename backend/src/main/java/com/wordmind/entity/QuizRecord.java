@@ -32,6 +32,9 @@ public class QuizRecord {
     @Column(name = "wrong_word_ids", length = 500)
     private String wrongWordIds;
 
+    @Column(name = "all_word_ids", length = 2000)
+    private String allWordIds;
+
     @Column(length = 20)
     private String mode;
 
