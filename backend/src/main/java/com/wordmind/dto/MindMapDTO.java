@@ -57,4 +57,40 @@ public class MindMapDTO {
         @NotNull(message = "关系类型不能为空")
         private String relationType;
     }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LearningPathResponse {
+        private List<PathWordNode> nodes;
+        private List<PathEdge> edges;
+        private List<PathWordNode> unmasteredNodes;
+        private List<PathEdge> recommendedPath;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PathWordNode {
+        private Long id;
+        private String word;
+        private String meaning;
+        private String category;
+        private Integer proficiency;
+        private Boolean mastered;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PathEdge {
+        private Long source;
+        private Long target;
+        private String relationType;
+        private String label;
+        private Integer weight;
+    }
 }

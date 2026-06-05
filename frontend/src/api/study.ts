@@ -1,9 +1,12 @@
 import api from './request'
-import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan } from '@/types'
+import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan, LearningPathResponse } from '@/types'
 
 export const mindMapApi = {
   getMindMap: (wordId: number, depth: number = 1): Promise<MindMapResponse> => {
     return api.get(`/mindmap/${wordId}`, { params: { depth } })
+  },
+  getLearningPath: (wordId: number, depth: number = 2): Promise<LearningPathResponse> => {
+    return api.get(`/mindmap/${wordId}/learning-path`, { params: { depth } })
   }
 }
 

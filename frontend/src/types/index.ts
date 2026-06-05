@@ -67,6 +67,30 @@ export interface MindMapResponse {
   edges: MindMapEdge[]
 }
 
+export interface PathWordNode {
+  id: number
+  word: string
+  meaning: string
+  category?: string
+  proficiency: number
+  mastered: boolean
+}
+
+export interface PathEdge {
+  source: number
+  target: number
+  relationType: string
+  label: string
+  weight: number
+}
+
+export interface LearningPathResponse {
+  nodes: PathWordNode[]
+  edges: PathEdge[]
+  unmasteredNodes: PathWordNode[]
+  recommendedPath: PathEdge[]
+}
+
 export interface ReviewRecord {
   id: number
   wordId: number
