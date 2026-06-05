@@ -25,9 +25,10 @@ public class QuizController {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ApiResponse<QuizDTO.StartResponse> startQuiz(
             HttpServletRequest request,
-            @RequestParam(defaultValue = "10") int count) {
+            @RequestParam(defaultValue = "10") int count,
+            @RequestParam(defaultValue = "CHOICE") QuizDTO.QuizMode mode) {
         Long userId = getUserIdFromRequest(request);
-        return ApiResponse.success(quizService.startQuiz(userId, count));
+        return ApiResponse.success(quizService.startQuiz(userId, count, mode));
     }
     
     @PostMapping("/submit")

@@ -31,6 +31,12 @@ public class QuizRecord {
     
     @Column(name = "wrong_word_ids", length = 500)
     private String wrongWordIds;
+
+    @Column(length = 20)
+    private String mode;
+
+    @Column(name = "partial_count")
+    private Integer partialCount;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

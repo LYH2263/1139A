@@ -63,26 +63,29 @@ public class QuizService {
         RELATION_TYPE_NAMES.put("SUFFIX", "后缀");
         RELATION_TYPE_NAMES.put("SCENE", "场景相关");
     }
-    
-    public QuizDTO.StartResponse startQuiz(Long userId, int count) {
+
+    public QuizDTO.StartResponse startQuiz(Long userId, int count, QuizDTO.QuizMode mode) {
         List<Word> allWords = wordRepository.findAll();
         Collections.shuffle(allWords);
-        
+
         List<Word> selectedWords = allWords.stream()
                 .limit(Math.min(count, allWords.size()))
                 .collect(Collectors.toList());
-        
+
         String quizId = UUID.randomUUID().toString();
         LocalDateTime startTime = LocalDateTime.now();
-        
+
         List<QuizDTO.Question> questions = selectedWords.stream()
-                .map(word -> generateQuestion(word, allWords))
+                .map(word -> mode == QuizDTO.QuizMode.SPELLING
+                        ? generateSpellingQuestion(word)
+                        : generateChoiceQuestion(word, allWords))
                 .collect(Collectors.toList());
-        
-        quizSessions.put(quizId, new QuizSession(userId, startTime, selectedWords));
-        
+
+        quizSessions.put(quizId, new QuizSession(userId, startTime, selectedWords, mode));
+
         return QuizDTO.StartResponse.builder()
                 .quizId(quizId)
+                .mode(mode)
                 .questions(questions)
                 .build();
     }
@@ -93,70 +96,123 @@ public class QuizService {
         if (session == null) {
             throw new RuntimeException("测验不存在或已过期");
         }
-        
+
+        QuizDTO.QuizMode mode = session.getMode();
         List<Word> words = session.getWords();
         int correctCount = 0;
+        int partialCount = 0;
+        int wrongCount = 0;
         List<Word> wrongWords = new ArrayList<>();
-        
+        List<QuizDTO.AnswerDetail> answerDetails = new ArrayList<>();
+
         for (int i = 0; i < words.size() && i < request.getAnswers().size(); i++) {
             Word word = words.get(i);
             QuizDTO.Answer answer = request.getAnswers().get(i);
-            
-            if (isCorrect(word, answer)) {
-                correctCount++;
-            } else {
+
+            QuizDTO.AnswerResult result;
+            String feedback;
+            String userAnswer = answer.getAnswer() != null ? answer.getAnswer() : "";
+
+            if (Boolean.TRUE.equals(answer.getTimedOut())) {
+                result = QuizDTO.AnswerResult.TIMEOUT;
+                feedback = "超时未作答";
+                wrongCount++;
                 wrongWords.add(word);
+            } else if (mode == QuizDTO.QuizMode.SPELLING) {
+                result = checkSpellingAnswer(word.getWord(), userAnswer);
+                if (result == QuizDTO.AnswerResult.CORRECT) {
+                    correctCount++;
+                    feedback = "回答正确！";
+                } else if (result == QuizDTO.AnswerResult.PARTIAL) {
+                    partialCount++;
+                    feedback = "接近正确，注意单复数形式";
+                    wrongWords.add(word);
+                } else {
+                    wrongCount++;
+                    feedback = "回答错误";
+                    wrongWords.add(word);
+                }
+            } else {
+                boolean isChoiceCorrect = isChoiceCorrect(word, answer);
+                if (isChoiceCorrect) {
+                    correctCount++;
+                    result = QuizDTO.AnswerResult.CORRECT;
+                    feedback = "回答正确！";
+                } else {
+                    wrongCount++;
+                    result = QuizDTO.AnswerResult.WRONG;
+                    feedback = "回答错误";
+                    wrongWords.add(word);
+                }
             }
+
+            answerDetails.add(QuizDTO.AnswerDetail.builder()
+                    .wordId(word.getId())
+                    .word(word.getWord())
+                    .meaning(word.getMeaning())
+                    .userAnswer(userAnswer)
+                    .correctAnswer(mode == QuizDTO.QuizMode.SPELLING ? word.getWord() : word.getMeaning())
+                    .result(result)
+                    .feedback(feedback)
+                    .build());
         }
-        
+
         int totalCount = words.size();
-        int score = totalCount > 0 ? (correctCount * 100 / totalCount) : 0;
+        int score = totalCount > 0 ? ((correctCount * 100 + partialCount * 50) / totalCount) : 0;
         int duration = (int) java.time.Duration.between(session.getStartTime(), LocalDateTime.now()).getSeconds();
-        
+        double accuracy = totalCount > 0 ? (double) correctCount / totalCount * 100 : 0;
+
         // 保存测验记录
         QuizRecord record = new QuizRecord();
         record.setUserId(userId);
         record.setScore(score);
         record.setCorrectCount(correctCount);
+        record.setPartialCount(partialCount);
         record.setTotalCount(totalCount);
         record.setDuration(duration);
+        record.setMode(mode.name());
         record.setWrongWordIds(wrongWords.stream()
                 .map(Word::getId)
                 .map(String::valueOf)
                 .collect(Collectors.joining(",")));
         quizRecordRepository.save(record);
-        
+
         // 清理会话
         quizSessions.remove(request.getQuizId());
-        
+
         return QuizDTO.SubmitResponse.builder()
                 .score(score)
                 .correctCount(correctCount)
+                .partialCount(partialCount)
+                .wrongCount(wrongCount)
                 .totalCount(totalCount)
                 .duration(duration)
                 .wrongWords(wrongWords.stream()
                         .map(this::convertToDTO)
                         .collect(Collectors.toList()))
+                .answerDetails(answerDetails)
+                .mode(mode)
+                .accuracy(Math.round(accuracy * 10.0) / 10.0)
+                .choiceAccuracy(mode == QuizDTO.QuizMode.CHOICE ? Math.round(accuracy * 10.0) / 10.0 : null)
+                .spellingAccuracy(mode == QuizDTO.QuizMode.SPELLING ? Math.round(accuracy * 10.0) / 10.0 : null)
                 .build();
     }
     
-    private QuizDTO.Question generateQuestion(Word word, List<Word> allWords) {
-        // 生成选择题：选择正确释义
+    private QuizDTO.Question generateChoiceQuestion(Word word, List<Word> allWords) {
         List<String> options = new ArrayList<>();
         options.add(word.getMeaning());
-        
-        // 随机选择3个错误选项
+
         List<Word> otherWords = allWords.stream()
                 .filter(w -> !w.getId().equals(word.getId()))
                 .collect(Collectors.toList());
         Collections.shuffle(otherWords);
-        
+
         for (int i = 0; i < Math.min(3, otherWords.size()); i++) {
             options.add(otherWords.get(i).getMeaning());
         }
-        
+
         Collections.shuffle(options);
-        
+
         return QuizDTO.Question.builder()
                 .wordId(word.getId())
                 .word(word.getWord())
@@ -164,10 +220,59 @@ public class QuizService {
                 .question("请选择 \"" + word.getWord() + "\" 的正确释义")
                 .options(options)
                 .correctAnswer(word.getMeaning())
+                .meaning(word.getMeaning())
                 .build();
     }
-    
-    private boolean isCorrect(Word word, QuizDTO.Answer answer) {
+
+    private QuizDTO.Question generateSpellingQuestion(Word word) {
+        String wordStr = word.getWord();
+        String firstLetter = wordStr.length() > 0 ? wordStr.substring(0, 1) : "";
+        String hint = firstLetter + "_".repeat(Math.max(0, wordStr.length() - 1));
+
+        return QuizDTO.Question.builder()
+                .wordId(word.getId())
+                .word(word.getWord())
+                .type("SPELLING")
+                .question(word.getMeaning())
+                .correctAnswer(wordStr)
+                .hint(hint)
+                .meaning(word.getMeaning())
+                .build();
+    }
+
+    private QuizDTO.AnswerResult checkSpellingAnswer(String correctWord, String userAnswer) {
+        if (userAnswer == null) {
+            return QuizDTO.AnswerResult.WRONG;
+        }
+
+        String normalizedCorrect = correctWord.trim().toLowerCase();
+        String normalizedUser = userAnswer.trim().toLowerCase();
+
+        if (normalizedCorrect.equals(normalizedUser)) {
+            return QuizDTO.AnswerResult.CORRECT;
+        }
+
+        if (isPluralVariant(normalizedCorrect, normalizedUser) ||
+            isPluralVariant(normalizedUser, normalizedCorrect)) {
+            return QuizDTO.AnswerResult.PARTIAL;
+        }
+
+        return QuizDTO.AnswerResult.WRONG;
+    }
+
+    private boolean isPluralVariant(String singular, String plural) {
+        if (singular.isEmpty() || plural.isEmpty()) return false;
+
+        if (plural.equals(singular + "s")) return true;
+        if (plural.equals(singular + "es")) return true;
+        if (singular.endsWith("y") && plural.equals(singular.substring(0, singular.length() - 1) + "ies")) return true;
+        if (singular.endsWith("f") && plural.equals(singular.substring(0, singular.length() - 1) + "ves")) return true;
+        if (singular.endsWith("fe") && plural.equals(singular.substring(0, singular.length() - 2) + "ves")) return true;
+
+        return false;
+    }
+
+    private boolean isChoiceCorrect(Word word, QuizDTO.Answer answer) {
         return word.getMeaning().equals(answer.getAnswer());
     }
     
@@ -546,15 +651,18 @@ public class QuizService {
         private final Long userId;
         private final LocalDateTime startTime;
         private final List<Word> words;
-        
-        public QuizSession(Long userId, LocalDateTime startTime, List<Word> words) {
+        private final QuizDTO.QuizMode mode;
+
+        public QuizSession(Long userId, LocalDateTime startTime, List<Word> words, QuizDTO.QuizMode mode) {
             this.userId = userId;
             this.startTime = startTime;
             this.words = words;
+            this.mode = mode;
         }
-        
+
         public Long getUserId() { return userId; }
         public LocalDateTime getStartTime() { return startTime; }
         public List<Word> getWords() { return words; }
+        public QuizDTO.QuizMode getMode() { return mode; }
     }
 }

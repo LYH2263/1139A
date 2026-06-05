@@ -12,6 +12,18 @@ import java.util.List;
 import java.util.Map;
 
 public class QuizDTO {
+
+    public enum QuizMode {
+        CHOICE,
+        SPELLING
+    }
+
+    public enum AnswerResult {
+        CORRECT,
+        PARTIAL,
+        WRONG,
+        TIMEOUT
+    }
     
     @Data
     @Builder
@@ -19,6 +31,7 @@ public class QuizDTO {
     @AllArgsConstructor
     public static class StartResponse {
         private String quizId;
+        private QuizMode mode;
         private List<Question> questions;
     }
     
@@ -33,6 +46,8 @@ public class QuizDTO {
         private String question;
         private List<String> options;
         private String correctAnswer;
+        private String hint;
+        private String meaning;
     }
     
     @Data
@@ -54,6 +69,21 @@ public class QuizDTO {
     public static class Answer {
         private Long wordId;
         private String answer;
+        private Boolean timedOut;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AnswerDetail {
+        private Long wordId;
+        private String word;
+        private String meaning;
+        private String userAnswer;
+        private String correctAnswer;
+        private AnswerResult result;
+        private String feedback;
     }
     
     @Data
@@ -63,9 +93,16 @@ public class QuizDTO {
     public static class SubmitResponse {
         private Integer score;
         private Integer correctCount;
+        private Integer partialCount;
+        private Integer wrongCount;
         private Integer totalCount;
         private Integer duration;
         private List<WordDTO.Response> wrongWords;
+        private List<AnswerDetail> answerDetails;
+        private QuizMode mode;
+        private Double accuracy;
+        private Double choiceAccuracy;
+        private Double spellingAccuracy;
     }
 
     @Data

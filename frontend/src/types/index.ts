@@ -107,6 +107,9 @@ export interface TodayReviewResponse {
   total: number
 }
 
+export type QuizMode = 'CHOICE' | 'SPELLING'
+export type AnswerResult = 'CORRECT' | 'PARTIAL' | 'WRONG' | 'TIMEOUT'
+
 export interface QuizQuestion {
   wordId: number
   word: string
@@ -114,19 +117,45 @@ export interface QuizQuestion {
   question: string
   options: string[]
   correctAnswer: string
+  hint: string
+  meaning: string
 }
 
 export interface QuizStartResponse {
   quizId: string
+  mode: QuizMode
   questions: QuizQuestion[]
+}
+
+export interface QuizAnswer {
+  wordId: number
+  answer: string
+  timedOut?: boolean
+}
+
+export interface AnswerDetail {
+  wordId: number
+  word: string
+  meaning: string
+  userAnswer: string
+  correctAnswer: string
+  result: AnswerResult
+  feedback: string
 }
 
 export interface QuizSubmitResponse {
   score: number
   correctCount: number
+  partialCount: number
+  wrongCount: number
   totalCount: number
   duration: number
   wrongWords: Word[]
+  answerDetails: AnswerDetail[]
+  mode: QuizMode
+  accuracy: number
+  choiceAccuracy: number | null
+  spellingAccuracy: number | null
 }
 
 export interface AccuracyPoint {
