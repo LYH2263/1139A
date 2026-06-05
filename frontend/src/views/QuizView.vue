@@ -103,8 +103,8 @@
 
             <!-- Choice Mode -->
             <div v-if="quizMode === 'CHOICE'" class="question-body">
-              <h1 class="target-word">{{ currentQuestion?.question }}</h1>
-              <p class="instruction">请选择正确的中文释义：</p>
+              <h1 class="target-word">{{ currentQuestion?.word }}</h1>
+              <p class="instruction">请选择正确的中文释义</p>
 
               <div class="options-list">
                 <div
@@ -143,14 +143,10 @@
 
               <div v-if="isAnswered" class="answer-feedback" :class="feedbackClass">
                 <el-icon>
-                  <CircleCheck v-if="currentFeedback === 'CORRECT'" />
-                  <Warning v-else-if="currentFeedback === 'PARTIAL'" />
-                  <CircleClose v-else />
+                  <CircleCheck v-if="currentFeedback === 'SUBMITTED'" />
+                  <Timer v-else />
                 </el-icon>
                 <span>{{ feedbackText }}</span>
-                <span v-if="currentFeedback !== 'CORRECT'" class="correct-answer">
-                  正确答案：{{ currentQuestion?.correctAnswer }}
-                </span>
               </div>
             </div>
 
@@ -166,16 +162,7 @@
                 提交答案
               </el-button>
               <el-button
-                v-else-if="quizMode === 'SPELLING' && isAnswered"
-                type="primary"
-                size="large"
-                class="next-btn"
-                @click="nextQuestion"
-              >
-                {{ isLastQuestion ? '查看结果' : '下一题' }}
-              </el-button>
-              <el-button
-                v-else
+                v-else-if="quizMode === 'CHOICE'"
                 type="primary"
                 size="large"
                 class="next-btn"
@@ -333,8 +320,9 @@ const answers = ref<QuizAnswer[]>([])
 const quizResult = ref<QuizSubmitResponse | null>(null)
 const timeLeft = ref(30)
 const timerRef = ref<number | null>(null)
+const autoAdvanceRef = ref<number | null>(null)
 const isAnswered = ref(false)
-const currentFeedback = ref<AnswerResult | null>(null)
+const currentFeedback = ref<string | null>(null)
 const spellingInput = ref<InstanceType<typeof import('element-plus').ElInput> | null>(null)
 
 const currentQuestion = computed(() => questions.value[currentIndex.value] || null)
@@ -363,14 +351,14 @@ const resultSubtitle = computed(() => {
 
 const feedbackClass = computed(() => {
   if (!currentFeedback.value) return ''
-  return currentFeedback.value.toLowerCase()
+  if (currentFeedback.value === 'SUBMITTED') return 'correct'
+  if (currentFeedback.value === 'TIMEOUT') return 'timeout'
+  return ''
 })
 
 const feedbackText = computed(() => {
   switch (currentFeedback.value) {
-    case 'CORRECT': return '回答正确！'
-    case 'PARTIAL': return '接近正确，注意单复数形式'
-    case 'WRONG': return '回答错误'
+    case 'SUBMITTED': return '答案已提交'
     case 'TIMEOUT': return '时间到！'
     default: return ''
   }
@@ -441,6 +429,29 @@ const stopTimer = () => {
   }
 }
 
+const stopAutoAdvance = () => {
+  if (autoAdvanceRef.value) {
+    clearTimeout(autoAdvanceRef.value)
+    autoAdvanceRef.value = null
+  }
+}
+
+const scheduleAutoAdvance = () => {
+  stopAutoAdvance()
+  autoAdvanceRef.value = window.setTimeout(() => {
+    if (isLastQuestion.value) {
+      submitQuiz()
+    } else {
+      currentIndex.value++
+      currentAnswer.value = ''
+      isAnswered.value = false
+      currentFeedback.value = null
+      startTimer()
+      nextTick().then(() => spellingInput.value?.focus())
+    }
+  }, 1500)
+}
+
 const handleTimeout = () => {
   stopTimer()
   if (!currentQuestion.value) return
@@ -453,6 +464,8 @@ const handleTimeout = () => {
     answer: currentAnswer.value,
     timedOut: true
   })
+
+  scheduleAutoAdvance()
 }
 
 const submitSpellingAnswer = () => {
@@ -460,19 +473,8 @@ const submitSpellingAnswer = () => {
 
   stopTimer()
   const userAnswer = currentAnswer.value.trim()
-  const correctWord = currentQuestion.value.correctAnswer
 
-  const normalizedCorrect = correctWord.trim().toLowerCase()
-  const normalizedUser = userAnswer.trim().toLowerCase()
-
-  if (normalizedCorrect === normalizedUser) {
-    currentFeedback.value = 'CORRECT'
-  } else if (isPluralVariant(normalizedCorrect, normalizedUser) || isPluralVariant(normalizedUser, normalizedCorrect)) {
-    currentFeedback.value = 'PARTIAL'
-  } else {
-    currentFeedback.value = 'WRONG'
-  }
-
+  currentFeedback.value = 'SUBMITTED'
   isAnswered.value = true
 
   answers.value.push({
@@ -480,16 +482,8 @@ const submitSpellingAnswer = () => {
     answer: userAnswer,
     timedOut: false
   })
-}
 
-const isPluralVariant = (singular: string, plural: string): boolean => {
-  if (!singular || !plural) return false
-  if (plural === singular + 's') return true
-  if (plural === singular + 'es') return true
-  if (singular.endsWith('y') && plural === singular.substring(0, singular.length - 1) + 'ies') return true
-  if (singular.endsWith('f') && plural === singular.substring(0, singular.length - 1) + 'ves') return true
-  if (singular.endsWith('fe') && plural === singular.substring(0, singular.length - 2) + 'ves') return true
-  return false
+  scheduleAutoAdvance()
 }
 
 const nextQuestion = () => {
@@ -536,6 +530,7 @@ const submitQuiz = async () => {
 
 const restartQuiz = () => {
   stopTimer()
+  stopAutoAdvance()
   modeSelected.value = false
   quizStarted.value = false
   quizFinished.value = false
@@ -553,6 +548,7 @@ const restartQuiz = () => {
 
 onUnmounted(() => {
   stopTimer()
+  stopAutoAdvance()
 })
 </script>
 

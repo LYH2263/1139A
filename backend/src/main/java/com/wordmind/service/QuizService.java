@@ -238,7 +238,6 @@ public class QuizService {
                 .word(word.getWord())
                 .type("SPELLING")
                 .question(word.getMeaning())
-                .correctAnswer(wordStr)
                 .hint(hint)
                 .meaning(word.getMeaning())
                 .build();
