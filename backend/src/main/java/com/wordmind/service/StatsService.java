@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @Service
 public class StatsService {
     
@@ -207,7 +209,6 @@ public class StatsService {
         sharedReportRepository.save(sharedReport);
 
         String shareUrl = frontendUrl + "/public/report/" + token;
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
         return StatsDTO.ShareResponse.builder()
                 .token(token)
