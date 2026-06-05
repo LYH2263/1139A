@@ -40,6 +40,7 @@ public class MindMapService {
                 .orElseThrow(() -> new RuntimeException("单词不存在"));
         
         Set<Long> visitedWordIds = new HashSet<>();
+        Set<Long> addedRelationIds = new HashSet<>();
         List<MindMapDTO.WordNode> nodes = new ArrayList<>();
         List<MindMapDTO.RelationEdge> edges = new ArrayList<>();
         
@@ -76,8 +77,11 @@ public class MindMapService {
                         }
                     }
                     
-                    // 添加边
-                    edges.add(createEdge(relation));
+                    // 添加边（去重）
+                    if (!addedRelationIds.contains(relation.getId())) {
+                        edges.add(createEdge(relation));
+                        addedRelationIds.add(relation.getId());
+                    }
                 }
             }
             
@@ -161,6 +165,7 @@ public class MindMapService {
             Map<Long, Integer> proficiencyMap) {
         
         List<MindMapDTO.PathEdge> recommendedPath = new ArrayList<>();
+        Set<String> addedPathEdges = new HashSet<>();
         Set<Long> masteredWordIds = nodes.stream()
                 .filter(MindMapDTO.PathWordNode::getMastered)
                 .map(MindMapDTO.PathWordNode::getId)
@@ -196,7 +201,14 @@ public class MindMapService {
             
             if (unmasteredWordIds.contains(current.wordId) && 
                 !reachedUnmastered.contains(current.wordId)) {
-                recommendedPath.addAll(current.path);
+                // 添加路径中的边（去重）
+                for (MindMapDTO.PathEdge edge : current.path) {
+                    String edgeKey = getEdgeKey(edge.getSource(), edge.getTarget());
+                    if (!addedPathEdges.contains(edgeKey)) {
+                        recommendedPath.add(edge);
+                        addedPathEdges.add(edgeKey);
+                    }
+                }
                 reachedUnmastered.add(current.wordId);
                 visited.add(current.wordId);
                 
@@ -222,6 +234,10 @@ public class MindMapService {
         }
         
         return recommendedPath;
+    }
+    
+    private String getEdgeKey(Long id1, Long id2) {
+        return Math.min(id1, id2) + "-" + Math.max(id1, id2);
     }
     
     private Map<Long, List<MindMapDTO.PathEdge>> buildAdjacencyList(List<MindMapDTO.PathEdge> edges) {

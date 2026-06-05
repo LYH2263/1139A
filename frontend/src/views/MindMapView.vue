@@ -100,7 +100,7 @@ import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import type { MindMapResponse, LearningPathResponse, PathWordNode } from '@/types'
-import { mindMapApi, reviewApi } from '@/api/study'
+import { mindMapApi } from '@/api/study'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Share, Promotion, InfoFilled } from '@element-plus/icons-vue'
 import PageHeader from '@/components/ui/PageHeader.vue'
@@ -268,6 +268,15 @@ const renderChart = () => {
   
   const { nodes, edges } = mindMapData.value
   
+  const getEdgeKey = (s: number, t: number) => `${Math.min(s, t)}-${Math.max(s, t)}`
+  const seenEdges = new Set<string>()
+  const dedupedEdges = edges.filter(edge => {
+    const key = getEdgeKey(edge.source, edge.target)
+    if (seenEdges.has(key)) return false
+    seenEdges.add(key)
+    return true
+  })
+  
   const chartData = nodes.map(node => {
     const nodeId = node.id
     const baseItem: any = {
@@ -299,7 +308,7 @@ const renderChart = () => {
     return baseItem
   })
   
-  const chartLinks = edges.map(edge => ({
+  const chartLinks = dedupedEdges.map(edge => ({
     source: String(edge.source),
     target: String(edge.target),
     value: edge.label,
@@ -384,11 +393,8 @@ const renderChart = () => {
                 icon: Promotion
               }
             )
-            await reviewApi.submitReview(wordId, 'UNKNOWN')
-            ElMessage.success('已添加到复习队列，即将跳转到复习页面...')
-            setTimeout(() => {
-              router.push('/review')
-            }, 1000)
+            ElMessage.success('即将跳转到复习页面...')
+            router.push('/review')
             return
           } catch (action: any) {
             if (action !== 'cancel') {
