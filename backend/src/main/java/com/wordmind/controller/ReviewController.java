@@ -30,11 +30,36 @@ public class ReviewController {
     
     @PostMapping("/submit")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
-    public ApiResponse<ReviewDTO.Response> submitReview(
+    public ApiResponse<ReviewDTO.SubmitResponse> submitReview(
             HttpServletRequest request,
             @Valid @RequestBody ReviewDTO.SubmitRequest submitRequest) {
         Long userId = getUserIdFromRequest(request);
         return ApiResponse.success(reviewService.submitReview(userId, submitRequest));
+    }
+    
+    @GetMapping("/stats")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<ReviewDTO.SessionStats> getSessionStats(
+            HttpServletRequest request,
+            @RequestParam String sessionId) {
+        Long userId = getUserIdFromRequest(request);
+        return ApiResponse.success(reviewService.getSessionStats(userId, sessionId));
+    }
+    
+    @GetMapping("/settings")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<ReviewDTO.SettingsResponse> getSettings(HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
+        return ApiResponse.success(reviewService.getSettings(userId));
+    }
+    
+    @PutMapping("/settings")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<ReviewDTO.SettingsResponse> saveSettings(
+            HttpServletRequest request,
+            @Valid @RequestBody ReviewDTO.SettingsRequest settingsRequest) {
+        Long userId = getUserIdFromRequest(request);
+        return ApiResponse.success(reviewService.saveSettings(userId, settingsRequest));
     }
     
     private Long getUserIdFromRequest(HttpServletRequest request) {

@@ -91,20 +91,62 @@ export interface LearningPathResponse {
   recommendedPath: PathEdge[]
 }
 
+export type ReviewMode = 'CARD' | 'LIST' | 'DICTATION'
+
 export interface ReviewRecord {
+  id: number
+  wordId: number
+  word: string
+  phonetic?: string
+  meaning: string
+  example?: string
+  result: string
+  proficiency: number
+  nextReviewAt?: string
+  createdAt?: string
+  consecutiveKnown?: number
+  consecutiveUnknown?: number
+  marked?: boolean
+  markedResult?: string
+}
+
+export interface TodayReviewResponse {
+  list: ReviewRecord[]
+  total: number
+  sessionId: string
+  reviewMode: ReviewMode
+}
+
+export interface SubmitReviewResponse {
   id: number
   wordId: number
   word: string
   meaning: string
   result: string
   proficiency: number
-  nextReviewAt?: string
-  createdAt?: string
+  nextReviewAt: string
+  createdAt: string
+  removedFromQueue: boolean
+  addedToQueueEnd: boolean
+  nextWord: ReviewRecord
 }
 
-export interface TodayReviewResponse {
-  list: ReviewRecord[]
-  total: number
+export interface ReviewSettingsRequest {
+  reviewMode: ReviewMode
+}
+
+export interface ReviewSettingsResponse {
+  reviewMode: ReviewMode
+}
+
+export interface SessionStats {
+  reviewedCount: number
+  knownCount: number
+  unknownCount: number
+  vagueCount: number
+  knownRate: number
+  remainingCount: number
+  estimatedRemainingSeconds: number
 }
 
 export type QuizMode = 'CHOICE' | 'SPELLING'

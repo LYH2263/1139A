@@ -2,16 +2,18 @@ package com.wordmind.service;
 
 import com.wordmind.dto.ReviewDTO;
 import com.wordmind.entity.ReviewRecord;
+import com.wordmind.entity.User;
 import com.wordmind.entity.Word;
 import com.wordmind.repository.ReviewRecordRepository;
+import com.wordmind.repository.UserRepository;
 import com.wordmind.repository.WordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +25,32 @@ public class ReviewService {
     @Autowired
     private WordRepository wordRepository;
     
+    @Autowired
+    private UserRepository userRepository;
+    
+    private final Map<String, ReviewSession> sessionStore = new ConcurrentHashMap<>();
+    
+    private static class ReviewSession {
+        Long userId;
+        List<Long> queue;
+        Set<Long> removedWords;
+        Map<Long, Integer> consecutiveKnown;
+        Map<Long, Integer> consecutiveUnknown;
+        List<ReviewDTO.SubmitRequest> reviewedHistory;
+        LocalDateTime startTime;
+        int averageTimePerWord = 10;
+        
+        ReviewSession(Long userId, List<Long> queue) {
+            this.userId = userId;
+            this.queue = new ArrayList<>(queue);
+            this.removedWords = new HashSet<>();
+            this.consecutiveKnown = new HashMap<>();
+            this.consecutiveUnknown = new HashMap<>();
+            this.reviewedHistory = new ArrayList<>();
+            this.startTime = LocalDateTime.now();
+        }
+    }
+    
     public ReviewDTO.TodayResponse getTodayReviews(Long userId) {
         List<ReviewRecord> records = reviewRecordRepository.findTodayReviews(userId, LocalDateTime.now());
         
@@ -30,14 +58,27 @@ public class ReviewService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         
+        String sessionId = UUID.randomUUID().toString();
+        List<Long> wordIds = list.stream()
+                .map(ReviewDTO.Response::getWordId)
+                .collect(Collectors.toList());
+        sessionStore.put(sessionId, new ReviewSession(userId, wordIds));
+        
+        User user = userRepository.findById(userId).orElse(null);
+        String reviewMode = user != null && user.getReviewMode() != null 
+                ? user.getReviewMode().name() 
+                : User.ReviewMode.CARD.name();
+        
         return ReviewDTO.TodayResponse.builder()
                 .list(list)
                 .total((long) list.size())
+                .sessionId(sessionId)
+                .reviewMode(reviewMode)
                 .build();
     }
     
     @Transactional
-    public ReviewDTO.Response submitReview(Long userId, ReviewDTO.SubmitRequest request) {
+    public ReviewDTO.SubmitResponse submitReview(Long userId, ReviewDTO.SubmitRequest request) {
         Word word = wordRepository.findById(request.getWordId())
                 .orElseThrow(() -> new RuntimeException("单词不存在"));
         
@@ -58,10 +99,156 @@ public class ReviewService {
             record.setProficiency(calculateProficiency(0, result));
         }
         
-        record.setNextReviewAt(calculateNextReviewTime(record.getProficiency()));
+        boolean removedFromQueue = false;
+        boolean addedToQueueEnd = false;
+        LocalDateTime nextReviewTime;
+        
+        ReviewSession session = request.getSessionId() != null 
+                ? sessionStore.get(request.getSessionId()) 
+                : null;
+        
+        if (session != null) {
+            Long wordId = request.getWordId();
+            
+            if (result == ReviewRecord.ReviewResult.KNOWN) {
+                session.consecutiveKnown.merge(wordId, 1, Integer::sum);
+                session.consecutiveUnknown.put(wordId, 0);
+                
+                int consecutive = session.consecutiveKnown.getOrDefault(wordId, 0);
+                if (consecutive >= 3) {
+                    removedFromQueue = true;
+                    session.removedWords.add(wordId);
+                    session.queue.remove(wordId);
+                    nextReviewTime = calculateNextReviewTime(record.getProficiency(), true);
+                } else {
+                    nextReviewTime = calculateNextReviewTime(record.getProficiency(), false);
+                }
+            } else if (result == ReviewRecord.ReviewResult.UNKNOWN) {
+                session.consecutiveUnknown.merge(wordId, 1, Integer::sum);
+                session.consecutiveKnown.put(wordId, 0);
+                
+                int consecutive = session.consecutiveUnknown.getOrDefault(wordId, 0);
+                if (consecutive >= 2) {
+                    int occurrences = Collections.frequency(session.queue, wordId);
+                    if (occurrences < 2) {
+                        addedToQueueEnd = true;
+                        session.queue.add(wordId);
+                    }
+                }
+                nextReviewTime = calculateNextReviewTime(record.getProficiency(), false);
+            } else {
+                session.consecutiveKnown.put(wordId, 0);
+                session.consecutiveUnknown.put(wordId, 0);
+                nextReviewTime = calculateNextReviewTime(record.getProficiency(), false);
+            }
+            
+            session.queue.remove(wordId);
+            session.reviewedHistory.add(request);
+            
+            long elapsedSeconds = java.time.Duration.between(session.startTime, LocalDateTime.now()).getSeconds();
+            if (session.reviewedHistory.size() > 0) {
+                session.averageTimePerWord = (int) (elapsedSeconds / session.reviewedHistory.size());
+            }
+        } else {
+            nextReviewTime = calculateNextReviewTime(record.getProficiency(), false);
+        }
+        
+        record.setNextReviewAt(nextReviewTime);
         ReviewRecord saved = reviewRecordRepository.save(record);
         
-        return convertToDTO(saved);
+        ReviewDTO.Response nextWord = null;
+        if (session != null && !session.queue.isEmpty()) {
+            Long nextWordId = session.queue.get(0);
+            Word nextW = wordRepository.findById(nextWordId).orElse(null);
+            if (nextW != null) {
+                ReviewRecord nextRecord = reviewRecordRepository.findByUserIdAndWordId(userId, nextWordId).orElse(null);
+                nextWord = convertToDTO(nextW, nextRecord, 
+                        session.consecutiveKnown.getOrDefault(nextWordId, 0),
+                        session.consecutiveUnknown.getOrDefault(nextWordId, 0));
+            }
+        }
+        
+        return ReviewDTO.SubmitResponse.builder()
+                .id(saved.getId())
+                .wordId(saved.getWordId())
+                .word(word.getWord())
+                .meaning(word.getMeaning())
+                .result(saved.getResult().name())
+                .proficiency(saved.getProficiency())
+                .nextReviewAt(saved.getNextReviewAt())
+                .createdAt(saved.getCreatedAt())
+                .removedFromQueue(removedFromQueue)
+                .addedToQueueEnd(addedToQueueEnd)
+                .nextWord(nextWord)
+                .build();
+    }
+    
+    public ReviewDTO.SessionStats getSessionStats(Long userId, String sessionId) {
+        ReviewSession session = sessionStore.get(sessionId);
+        if (session == null) {
+            return ReviewDTO.SessionStats.builder()
+                    .reviewedCount(0)
+                    .knownCount(0)
+                    .unknownCount(0)
+                    .vagueCount(0)
+                    .knownRate(0.0)
+                    .remainingCount(0)
+                    .estimatedRemainingSeconds(0L)
+                    .build();
+        }
+        
+        int reviewedCount = session.reviewedHistory.size();
+        int knownCount = 0;
+        int unknownCount = 0;
+        int vagueCount = 0;
+        
+        for (ReviewDTO.SubmitRequest req : session.reviewedHistory) {
+            switch (req.getResult()) {
+                case "KNOWN": knownCount++; break;
+                case "UNKNOWN": unknownCount++; break;
+                case "VAGUE": vagueCount++; break;
+            }
+        }
+        
+        double knownRate = reviewedCount > 0 ? (double) knownCount / reviewedCount * 100 : 0;
+        int remainingCount = session.queue.size();
+        long estimatedRemainingSeconds = (long) remainingCount * session.averageTimePerWord;
+        
+        return ReviewDTO.SessionStats.builder()
+                .reviewedCount(reviewedCount)
+                .knownCount(knownCount)
+                .unknownCount(unknownCount)
+                .vagueCount(vagueCount)
+                .knownRate(Math.round(knownRate * 10.0) / 10.0)
+                .remainingCount(remainingCount)
+                .estimatedRemainingSeconds(estimatedRemainingSeconds)
+                .build();
+    }
+    
+    public ReviewDTO.SettingsResponse saveSettings(Long userId, ReviewDTO.SettingsRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        
+        User.ReviewMode mode = User.ReviewMode.valueOf(request.getReviewMode());
+        user.setReviewMode(mode);
+        userRepository.save(user);
+        
+        return ReviewDTO.SettingsResponse.builder()
+                .reviewMode(mode.name())
+                .build();
+    }
+    
+    public ReviewDTO.SettingsResponse getSettings(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        
+        String mode = user.getReviewMode() != null 
+                ? user.getReviewMode().name() 
+                : User.ReviewMode.CARD.name();
+        
+        return ReviewDTO.SettingsResponse.builder()
+                .reviewMode(mode)
+                .build();
     }
     
     private int calculateProficiency(int current, ReviewRecord.ReviewResult result) {
@@ -73,16 +260,18 @@ public class ReviewService {
         }
     }
     
-    private LocalDateTime calculateNextReviewTime(int proficiency) {
+    private LocalDateTime calculateNextReviewTime(int proficiency, boolean doubleInterval) {
         LocalDateTime now = LocalDateTime.now();
+        long multiplier = doubleInterval ? 2 : 1;
+        
         switch (proficiency) {
-            case 0: return now.plusMinutes(5);
-            case 1: return now.plusHours(1);
-            case 2: return now.plusDays(1);
-            case 3: return now.plusDays(3);
-            case 4: return now.plusDays(7);
-            case 5: return now.plusDays(30);
-            default: return now.plusDays(1);
+            case 0: return now.plusMinutes(5 * multiplier);
+            case 1: return now.plusHours(1 * multiplier);
+            case 2: return now.plusDays(1 * multiplier);
+            case 3: return now.plusDays(3 * multiplier);
+            case 4: return now.plusDays(7 * multiplier);
+            case 5: return now.plusDays(30 * multiplier);
+            default: return now.plusDays(1 * multiplier);
         }
     }
     
@@ -93,11 +282,32 @@ public class ReviewService {
                 .id(record.getId())
                 .wordId(record.getWordId())
                 .word(word != null ? word.getWord() : "")
+                .phonetic(word != null ? word.getPhonetic() : "")
                 .meaning(word != null ? word.getMeaning() : "")
+                .example(word != null ? word.getExample() : "")
                 .result(record.getResult().name())
                 .proficiency(record.getProficiency())
                 .nextReviewAt(record.getNextReviewAt())
                 .createdAt(record.getCreatedAt())
+                .consecutiveKnown(0)
+                .consecutiveUnknown(0)
+                .build();
+    }
+    
+    private ReviewDTO.Response convertToDTO(Word word, ReviewRecord record, int consecutiveKnown, int consecutiveUnknown) {
+        return ReviewDTO.Response.builder()
+                .id(record != null ? record.getId() : null)
+                .wordId(word.getId())
+                .word(word.getWord())
+                .phonetic(word.getPhonetic())
+                .meaning(word.getMeaning())
+                .example(word.getExample())
+                .result(record != null ? record.getResult().name() : null)
+                .proficiency(record != null ? record.getProficiency() : 0)
+                .nextReviewAt(record != null ? record.getNextReviewAt() : null)
+                .createdAt(record != null ? record.getCreatedAt() : null)
+                .consecutiveKnown(consecutiveKnown)
+                .consecutiveUnknown(consecutiveUnknown)
                 .build();
     }
 }

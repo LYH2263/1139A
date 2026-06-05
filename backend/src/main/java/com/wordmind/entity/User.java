@@ -36,7 +36,15 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_mode", length = 20)
+    private ReviewMode reviewMode = ReviewMode.CARD;
+    
     public enum Role {
         USER, ADMIN
+    }
+    
+    public enum ReviewMode {
+        CARD, LIST, DICTATION
     }
 }

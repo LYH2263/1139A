@@ -1,5 +1,27 @@
 import api from './request'
-import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan, LearningPathResponse, MistakesResponse, WeaknessAnalysisResponse, QuizMode, QuizAnswer, ReportResponse, ReportRequest, ShareResponse, ShareRequest, PublicReportResponse } from '@/types'
+import type { 
+  MindMapResponse, 
+  TodayReviewResponse, 
+  ReviewRecord, 
+  QuizStartResponse, 
+  QuizSubmitResponse, 
+  StatsResponse, 
+  StudyPlan, 
+  LearningPathResponse, 
+  MistakesResponse, 
+  WeaknessAnalysisResponse, 
+  QuizMode, 
+  QuizAnswer, 
+  ReportResponse, 
+  ReportRequest, 
+  ShareResponse, 
+  ShareRequest, 
+  PublicReportResponse,
+  SubmitReviewResponse,
+  SessionStats,
+  ReviewSettingsRequest,
+  ReviewSettingsResponse
+} from '@/types'
 
 export const mindMapApi = {
   getMindMap: (wordId: number, depth: number = 1): Promise<MindMapResponse> => {
@@ -15,8 +37,20 @@ export const reviewApi = {
     return api.get('/reviews/today')
   },
 
-  submitReview: (wordId: number, result: string): Promise<ReviewRecord> => {
-    return api.post('/reviews/submit', { wordId, result })
+  submitReview: (wordId: number, result: string, sessionId?: string): Promise<SubmitReviewResponse> => {
+    return api.post('/reviews/submit', { wordId, result, sessionId })
+  },
+
+  getSessionStats: (sessionId: string): Promise<SessionStats> => {
+    return api.get('/reviews/stats', { params: { sessionId } })
+  },
+
+  getSettings: (): Promise<ReviewSettingsResponse> => {
+    return api.get('/reviews/settings')
+  },
+
+  saveSettings: (reviewMode: string): Promise<ReviewSettingsResponse> => {
+    return api.put('/reviews/settings', { reviewMode })
   }
 }
 
