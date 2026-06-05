@@ -59,6 +59,12 @@ const router = createRouter({
           meta: { title: '单词测验' }
         },
         {
+          path: 'quiz/mistakes',
+          name: 'QuizMistakes',
+          component: () => import('@/views/QuizMistakesView.vue'),
+          meta: { title: '错题本' }
+        },
+        {
           path: 'records',
           name: 'Records',
           component: () => import('@/views/RecordsView.vue'),

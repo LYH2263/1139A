@@ -1,5 +1,5 @@
 import api from './request'
-import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan, LearningPathResponse } from '@/types'
+import type { MindMapResponse, TodayReviewResponse, ReviewRecord, QuizStartResponse, QuizSubmitResponse, StatsResponse, StudyPlan, LearningPathResponse, MistakesResponse, WeaknessAnalysisResponse } from '@/types'
 
 export const mindMapApi = {
   getMindMap: (wordId: number, depth: number = 1): Promise<MindMapResponse> => {
@@ -27,6 +27,16 @@ export const quizApi = {
 
   submitQuiz: (quizId: string, answers: { wordId: number; answer: string }[]): Promise<QuizSubmitResponse> => {
     return api.post('/quiz/submit', { quizId, answers })
+  },
+
+  getMistakes: (page: number = 0, size: number = 10, pos?: string): Promise<MistakesResponse> => {
+    const params: Record<string, any> = { page, size }
+    if (pos) params.pos = pos
+    return api.get('/quiz/mistakes', { params })
+  },
+
+  getWeaknessAnalysis: (): Promise<WeaknessAnalysisResponse> => {
+    return api.get('/quiz/weakness-analysis')
   }
 }
 

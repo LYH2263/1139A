@@ -129,6 +129,58 @@ export interface QuizSubmitResponse {
   wrongWords: Word[]
 }
 
+export interface AccuracyPoint {
+  date: string
+  accuracy: number
+  attempts: number
+}
+
+export interface MistakeItem {
+  wordId: number
+  word: string
+  phonetic?: string
+  pos?: string
+  meaning: string
+  example?: string
+  errorCount: number
+  lastErrorTime: string
+  accuracy: number
+  totalAttempts: number
+  accuracyTrend: AccuracyPoint[]
+  inTodayReview: boolean
+}
+
+export interface MistakesResponse {
+  list: MistakeItem[]
+  total: number
+  page: number
+  size: number
+}
+
+export interface PosDistribution {
+  pos: string
+  posName: string
+  errorCount: number
+  totalCount: number
+  errorRate: number
+}
+
+export interface RelationTypeDistribution {
+  relationType: string
+  typeName: string
+  errorCount: number
+  totalCount: number
+  errorRate: number
+}
+
+export interface WeaknessAnalysisResponse {
+  posDistribution: PosDistribution[]
+  relationTypeDistribution: RelationTypeDistribution[]
+  weakPos: string[]
+  weakRelationTypes: string[]
+  overallSuggestion: string
+}
+
 export interface StatsResponse {
   totalWords: number
   todayReviewCount: number

@@ -39,6 +39,25 @@ public class QuizController {
         return ApiResponse.success(quizService.submitQuiz(userId, submitRequest));
     }
     
+    @GetMapping("/mistakes")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<QuizDTO.MistakesResponse> getMistakes(
+            HttpServletRequest request,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String pos) {
+        Long userId = getUserIdFromRequest(request);
+        return ApiResponse.success(quizService.getMistakes(userId, page, size, pos));
+    }
+    
+    @GetMapping("/weakness-analysis")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<QuizDTO.WeaknessAnalysisResponse> getWeaknessAnalysis(
+            HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
+        return ApiResponse.success(quizService.getWeaknessAnalysis(userId));
+    }
+    
     private Long getUserIdFromRequest(HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);
         return tokenProvider.getUserIdFromToken(token);

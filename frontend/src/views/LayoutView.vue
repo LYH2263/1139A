@@ -43,6 +43,11 @@
           <template #title>单词测验</template>
         </el-menu-item>
         
+        <el-menu-item index="/quiz/mistakes">
+          <el-icon><Warning /></el-icon>
+          <template #title>错题本</template>
+        </el-menu-item>
+        
         <el-menu-item index="/records">
           <el-icon><Timer /></el-icon>
           <template #title>学习记录</template>
@@ -108,6 +113,10 @@
           <el-icon><Edit /></el-icon>
           <span>单词测验</span>
         </el-menu-item>
+        <el-menu-item index="/quiz/mistakes" @click="showMobileDrawer = false">
+          <el-icon><Warning /></el-icon>
+          <span>错题本</span>
+        </el-menu-item>
         <el-menu-item index="/records" @click="showMobileDrawer = false">
           <el-icon><Timer /></el-icon>
           <span>学习记录</span>
@@ -162,7 +171,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   DataLine, Document, Share, Calendar, Edit, Timer, Setting, 
-  Reading, Expand, Fold, Menu, SwitchButton, ArrowDown
+  Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Warning
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 

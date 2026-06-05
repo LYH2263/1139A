@@ -23,4 +23,10 @@ public interface QuizRecordRepository extends JpaRepository<QuizRecord, Long> {
     @Query("SELECT COUNT(qr) FROM QuizRecord qr WHERE qr.userId = :userId AND " +
            "qr.createdAt >= :startOfDay AND qr.createdAt < :endOfDay")
     Long countTodayQuizzesByUserId(@Param("userId") Long userId, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
+
+    @Query("SELECT qr FROM QuizRecord qr WHERE qr.userId = :userId AND qr.wrongWordIds IS NOT NULL AND qr.wrongWordIds <> '' ORDER BY qr.createdAt DESC")
+    List<QuizRecord> findAllWithWrongWordsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT qr FROM QuizRecord qr WHERE qr.userId = :userId AND qr.createdAt >= :startDate ORDER BY qr.createdAt ASC")
+    List<QuizRecord> findByUserIdAndCreatedAtAfter(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate);
 }
