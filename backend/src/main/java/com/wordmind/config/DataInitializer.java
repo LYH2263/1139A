@@ -18,6 +18,9 @@ public class DataInitializer {
                                WordRelationRepository relationRepo, 
                                ReviewRecordRepository reviewRepo,
                                QuizRecordRepository quizRepo,
+                               WordBookRepository wordBookRepo,
+                               WordBookWordRepository wordBookWordRepo,
+                               UserWordBookRepository userWordBookRepo,
                                PasswordEncoder encoder) {
         return args -> {
             // 创建测试用户
@@ -160,6 +163,64 @@ public class DataInitializer {
                 
                 // 时间类关系
                 createRelation(relationRepo, morning.getId(), night.getId(), WordRelation.RelationType.ANTONYM);
+            }
+
+            // 初始化词书数据
+            if (wordBookRepo.count() == 0) {
+                // 创建初级词书：基础情感词汇
+                WordBook emotionBook = new WordBook();
+                emotionBook.setName("基础情感词汇");
+                emotionBook.setDescription("学习表达喜怒哀乐等基本情感的英语词汇，适合英语初学者。");
+                emotionBook.setDifficultyLevel(WordBook.DifficultyLevel.BEGINNER);
+                emotionBook.setWordCount(5);
+                wordBookRepo.save(emotionBook);
+
+                // 创建中级词书：日常生活词汇
+                WordBook dailyBook = new WordBook();
+                dailyBook.setName("日常生活词汇");
+                dailyBook.setDescription("涵盖饮食、运动、学习等日常生活场景的实用词汇。");
+                dailyBook.setDifficultyLevel(WordBook.DifficultyLevel.INTERMEDIATE);
+                dailyBook.setWordCount(10);
+                wordBookRepo.save(dailyBook);
+
+                // 创建高级词书：品质与描述
+                WordBook advancedBook = new WordBook();
+                advancedBook.setName("品质描述词汇");
+                advancedBook.setDescription("用于描述事物品质、大小、外观的高级形容词，丰富你的表达能力。");
+                advancedBook.setDifficultyLevel(WordBook.DifficultyLevel.ADVANCED);
+                advancedBook.setWordCount(8);
+                wordBookRepo.save(advancedBook);
+
+                // 为情感词书添加单词 (ID 1-5: happy, joy, sad, excited, angry)
+                for (long i = 1; i <= 5; i++) {
+                    WordBookWord wbw = new WordBookWord();
+                    wbw.setWordBookId(emotionBook.getId());
+                    wbw.setWordId(i);
+                    wordBookWordRepo.save(wbw);
+                }
+
+                // 为日常生活词书添加单词 (ID 6-15: apple, fruit, bread, water, coffee, run, fast, walk, eat, drink)
+                for (long i = 6; i <= 15; i++) {
+                    WordBookWord wbw = new WordBookWord();
+                    wbw.setWordBookId(dailyBook.getId());
+                    wbw.setWordId(i);
+                    wordBookWordRepo.save(wbw);
+                }
+
+                // 为品质描述词书添加单词 (ID 16-23: beautiful, pretty, tall, short, big, small, large, tiny)
+                for (long i = 16; i <= 23; i++) {
+                    WordBookWord wbw = new WordBookWord();
+                    wbw.setWordBookId(advancedBook.getId());
+                    wbw.setWordId(i);
+                    wordBookWordRepo.save(wbw);
+                }
+
+                // 为用户 user (ID=2) 默认添加情感词书到学习计划
+                UserWordBook uwb = new UserWordBook();
+                uwb.setUserId(2L);
+                uwb.setWordBookId(emotionBook.getId());
+                uwb.setMasteredCount(3);
+                userWordBookRepo.save(uwb);
             }
             
             // 为用户 user (ID=2) 创建复习记录和测验记录（独立于单词初始化）

@@ -48,6 +48,9 @@ public class StatsService {
     private WordRepository wordRepository;
 
     @Autowired
+    private WordBookService wordBookService;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -71,6 +74,7 @@ public class StatsService {
                 .todayReviewCount(todayReviewCount != null ? todayReviewCount : 0L)
                 .accuracy(avgScore != null ? avgScore : 0.0)
                 .streakDays(calculateStreakDays(userId))
+                .wordBookProgress(wordBookService.getWordBookProgress(userId))
                 .build();
     }
     

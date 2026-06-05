@@ -313,3 +313,69 @@ export interface PublicReportResponse {
   username: string
   createdAt: string
 }
+
+export type DifficultyLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED'
+
+export interface WordBook {
+  id: number
+  name: string
+  description?: string
+  coverImage?: string
+  difficultyLevel: DifficultyLevel
+  wordCount: number
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface WordBookListResponse {
+  list: WordBook[]
+  total: number
+  page: number
+  size: number
+}
+
+export interface UserWordBook {
+  id: number
+  name: string
+  description?: string
+  coverImage?: string
+  difficultyLevel: DifficultyLevel
+  wordCount: number
+  masteredCount: number
+  progress: number
+  createdAt?: string
+}
+
+export interface WordBookProgress {
+  wordBookId: number
+  wordBookName: string
+  totalWords: number
+  masteredWords: number
+  progress: number
+}
+
+export interface WordBookCreateRequest {
+  name: string
+  description?: string
+  coverImage?: string
+  difficultyLevel: string
+}
+
+export interface WordBookUpdateRequest {
+  name?: string
+  description?: string
+  coverImage?: string
+  difficultyLevel?: string
+}
+
+export interface WordBatchRequest {
+  wordIds: number[]
+}
+
+export interface StatsResponse {
+  totalWords: number
+  todayReviewCount: number
+  accuracy: number
+  streakDays: number
+  wordBookProgress?: WordBookProgress[]
+}

@@ -19,6 +19,7 @@ public class StatsDTO {
         private Long todayReviewCount;
         private Double accuracy;
         private Integer streakDays;
+        private java.util.List<WordBookDTO.ProgressResponse> wordBookProgress;
     }
 
     @Data

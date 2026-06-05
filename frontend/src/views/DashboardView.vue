@@ -47,6 +47,39 @@
         </StatCard>
       </div>
       
+      <!-- Word Book Progress -->
+      <div v-if="stats?.wordBookProgress && stats.wordBookProgress.length > 0">
+        <h3 class="section-title">词书学习进度</h3>
+        <SectionCard class="wordbook-progress-section">
+          <div class="wordbook-progress-list">
+            <div
+              v-for="item in stats.wordBookProgress"
+              :key="item.wordBookId"
+              class="wordbook-progress-item"
+            >
+              <div class="wordbook-progress-header">
+                <span class="wordbook-name">{{ item.wordBookName }}</span>
+                <span class="wordbook-progress-value">
+                  {{ item.masteredWords }}/{{ item.totalWords }} 词
+                  <span class="progress-percent">({{ item.progress.toFixed(1) }}%)</span>
+                </span>
+              </div>
+              <el-progress
+                :percentage="item.progress"
+                :stroke-width="10"
+                :show-text="false"
+                color="var(--c-primary)"
+              />
+            </div>
+          </div>
+          <div class="view-all-btn">
+            <el-button type="primary" link @click="$router.push('/wordbooks')">
+              查看全部词书 <el-icon><ArrowRight /></el-icon>
+            </el-button>
+          </div>
+        </SectionCard>
+      </div>
+
       <!-- Quick Actions -->
       <h3 class="section-title">快速开始</h3>
       <div class="actions-grid">
@@ -136,7 +169,7 @@
 import { ref, onMounted } from 'vue'
 import { 
   Document, Calendar, TrendCharts, Timer, 
-  Share, Edit, Refresh, InfoFilled 
+  Share, Edit, Refresh, InfoFilled, ArrowRight
 } from '@element-plus/icons-vue'
 import type { StatsResponse } from '@/types'
 import { statsApi } from '@/api/study'
@@ -214,6 +247,50 @@ onMounted(() => {
 .text-danger { color: var(--c-danger); }
 
 .mr-1 { margin-right: 4px; }
+
+.wordbook-progress-section {
+  margin-bottom: var(--space-xl);
+}
+
+.wordbook-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.wordbook-progress-item {
+  padding: var(--space-sm) 0;
+}
+
+.wordbook-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.wordbook-name {
+  font-weight: 600;
+  color: var(--c-text-primary);
+}
+
+.wordbook-progress-value {
+  font-size: var(--font-size-sm);
+  color: var(--c-text-secondary);
+}
+
+.progress-percent {
+  color: var(--c-primary);
+  font-weight: 600;
+  margin-left: var(--space-xs);
+}
+
+.view-all-btn {
+  text-align: center;
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--c-border-light);
+  margin-top: var(--space-sm);
+}
 
 /* Responsive */
 @media (max-width: 1024px) {

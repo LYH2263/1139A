@@ -41,6 +41,12 @@ const router = createRouter({
           meta: { title: '单词详情' }
         },
         {
+          path: 'wordbooks',
+          name: 'WordBooks',
+          component: () => import('@/views/WordBooksView.vue'),
+          meta: { title: '词书中心' }
+        },
+        {
           path: 'mindmap',
           name: 'MindMap',
           component: () => import('@/views/MindMapView.vue'),

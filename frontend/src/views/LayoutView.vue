@@ -27,6 +27,11 @@
           <el-icon><Document /></el-icon>
           <template #title>单词列表</template>
         </el-menu-item>
+
+        <el-menu-item index="/wordbooks">
+          <el-icon><Collection /></el-icon>
+          <template #title>词书中心</template>
+        </el-menu-item>
         
         <el-menu-item index="/mindmap">
           <el-icon><Share /></el-icon>
@@ -97,9 +102,13 @@
           <el-icon><DataLine /></el-icon>
           <span>仪表盘</span>
         </el-menu-item>
-         <el-menu-item index="/words" @click="showMobileDrawer = false">
+        <el-menu-item index="/words" @click="showMobileDrawer = false">
           <el-icon><Document /></el-icon>
           <span>单词列表</span>
+        </el-menu-item>
+        <el-menu-item index="/wordbooks" @click="showMobileDrawer = false">
+          <el-icon><Collection /></el-icon>
+          <span>词书中心</span>
         </el-menu-item>
         <el-menu-item index="/mindmap" @click="showMobileDrawer = false">
           <el-icon><Share /></el-icon>
@@ -171,7 +180,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   DataLine, Document, Share, Calendar, Edit, Timer, Setting, 
-  Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Warning
+  Reading, Expand, Fold, Menu, SwitchButton, ArrowDown, Warning,
+  Collection
 } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
 
