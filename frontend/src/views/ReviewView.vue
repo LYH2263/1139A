@@ -1,6 +1,9 @@
 <template>
   <div class="review-page page-container">
-    <PageHeader title="今日复习" subtitle="基于艾宾浩斯曲线智能安排复习计划。">
+    <PageHeader 
+      :title="wordBookId ? `词书复习：${wordBookName}` : '今日复习'" 
+      :subtitle="wordBookId ? '专注学习当前词书内的单词。' : '基于艾宾浩斯曲线智能安排复习计划。'"
+    >
       <template #actions>
         <el-dropdown @command="handleModeChange" trigger="click">
           <el-button>
@@ -372,20 +375,23 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { 
   Calendar, Check, Close, Warning, CircleCheck, Setting, ArrowDown, 
   Tickets, List as ListIcon, Microphone, VideoPlay, CircleClose,
-  TrendCharts, Star
+  TrendCharts, Star, Notebook
 } from '@element-plus/icons-vue'
 import type { ReviewRecord, ReviewMode, SessionStats } from '@/types'
 import { reviewApi } from '@/api/study'
+import { wordBookApi } from '@/api/wordbook'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import SectionCard from '@/components/ui/SectionCard.vue'
 import ReviewStatsBar from '@/components/ui/ReviewStatsBar.vue'
 import StatCard from '@/components/ui/StatCard.vue'
 
+const route = useRoute()
 const loading = ref(false)
 const reviewList = ref<ReviewRecord[]>([])
 const sessionId = ref('')
@@ -393,6 +399,8 @@ const reviewMode = ref<ReviewMode>('CARD')
 const currentIndex = ref(0)
 const showAnswer = ref(false)
 const removedWords = ref<Set<number>>(new Set())
+const wordBookId = ref<number | null>(null)
+const wordBookName = ref<string>('')
 
 const showAllMeanings = ref(false)
 const dictationInput = ref('')
@@ -480,7 +488,14 @@ const getResultLabel = (result: string) => {
 const fetchTodayReviews = async () => {
   loading.value = true
   try {
-    const res = await reviewApi.getTodayReviews()
+    let res
+    if (wordBookId.value) {
+      const wb = await wordBookApi.getWordBookById(wordBookId.value)
+      wordBookName.value = wb.name
+      res = await reviewApi.getWordBookReviews(wordBookId.value)
+    } else {
+      res = await reviewApi.getTodayReviews()
+    }
     reviewList.value = res.list.map(w => ({ ...w, marked: false }))
     sessionId.value = res.sessionId
     reviewMode.value = res.reviewMode
@@ -674,6 +689,10 @@ watch(reviewMode, (newMode) => {
 })
 
 onMounted(() => {
+  const wbId = route.query.wordBookId
+  if (wbId) {
+    wordBookId.value = Number(wbId)
+  }
   fetchTodayReviews()
 })
 

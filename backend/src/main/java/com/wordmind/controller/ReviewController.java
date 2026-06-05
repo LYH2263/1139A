@@ -27,6 +27,15 @@ public class ReviewController {
         Long userId = getUserIdFromRequest(request);
         return ApiResponse.success(reviewService.getTodayReviews(userId));
     }
+
+    @GetMapping("/wordbook/{wordBookId}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<ReviewDTO.TodayResponse> getWordBookReviews(
+            HttpServletRequest request,
+            @PathVariable Long wordBookId) {
+        Long userId = getUserIdFromRequest(request);
+        return ApiResponse.success(reviewService.getWordBookReviews(userId, wordBookId));
+    }
     
     @PostMapping("/submit")
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")

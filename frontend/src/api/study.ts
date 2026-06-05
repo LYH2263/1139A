@@ -42,6 +42,10 @@ export const reviewApi = {
     return api.get('/reviews/today')
   },
 
+  getWordBookReviews: (wordBookId: number): Promise<TodayReviewResponse> => {
+    return api.get(`/reviews/wordbook/${wordBookId}`)
+  },
+
   submitReview: (wordId: number, result: string, sessionId?: string): Promise<SubmitReviewResponse> => {
     return api.post('/reviews/submit', { wordId, result, sessionId })
   },

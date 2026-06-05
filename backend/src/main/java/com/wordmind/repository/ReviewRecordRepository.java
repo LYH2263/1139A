@@ -1,6 +1,7 @@
 package com.wordmind.repository;
 
 import com.wordmind.entity.ReviewRecord;
+import com.wordmind.entity.Word;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -48,4 +49,18 @@ public interface ReviewRecordRepository extends JpaRepository<ReviewRecord, Long
             @Param("userId") Long userId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT rr FROM ReviewRecord rr WHERE rr.userId = :userId AND " +
+           "(rr.nextReviewAt IS NULL OR rr.nextReviewAt <= :now) " +
+           "AND rr.wordId IN (SELECT wbw.wordId FROM WordBookWord wbw WHERE wbw.wordBookId = :wordBookId) " +
+           "ORDER BY rr.nextReviewAt ASC")
+    List<ReviewRecord> findTodayReviewsByWordBookId(@Param("userId") Long userId, 
+                                                     @Param("now") LocalDateTime now,
+                                                     @Param("wordBookId") Long wordBookId);
+
+    @Query("SELECT w FROM Word w WHERE w.id IN " +
+           "(SELECT wbw.wordId FROM WordBookWord wbw WHERE wbw.wordBookId = :wordBookId) " +
+           "AND w.id NOT IN " +
+           "(SELECT rr.wordId FROM ReviewRecord rr WHERE rr.userId = :userId)")
+    List<Word> findNewWordsByWordBookId(@Param("userId") Long userId, @Param("wordBookId") Long wordBookId);
 }

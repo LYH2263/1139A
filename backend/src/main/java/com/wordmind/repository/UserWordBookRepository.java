@@ -23,7 +23,7 @@ public interface UserWordBookRepository extends JpaRepository<UserWordBook, Long
     void deleteByUserIdAndWordBookId(Long userId, Long wordBookId);
 
     @Query("SELECT COUNT(DISTINCT rr.wordId) FROM ReviewRecord rr " +
-           "WHERE rr.userId = :userId AND rr.result = 'KNOWN' " +
+           "WHERE rr.userId = :userId AND rr.proficiency >= 3 " +
            "AND rr.wordId IN (SELECT wbw.wordId FROM WordBookWord wbw WHERE wbw.wordBookId = :wordBookId)")
     Long countMasteredWordsByUserIdAndWordBookId(@Param("userId") Long userId, @Param("wordBookId") Long wordBookId);
 }

@@ -175,7 +175,7 @@
                 <el-button
                   type="primary"
                   size="small"
-                  @click="$router.push('/review')"
+                  @click="$router.push({ path: '/review', query: { wordBookId: wordbook.id } })"
                 >
                   <el-icon class="mr-1"><Calendar /></el-icon>
                   开始学习

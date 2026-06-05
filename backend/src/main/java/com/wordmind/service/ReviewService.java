@@ -6,6 +6,7 @@ import com.wordmind.entity.User;
 import com.wordmind.entity.Word;
 import com.wordmind.repository.ReviewRecordRepository;
 import com.wordmind.repository.UserRepository;
+import com.wordmind.repository.WordBookWordRepository;
 import com.wordmind.repository.WordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,9 @@ public class ReviewService {
     
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private WordBookWordRepository wordBookWordRepository;
     
     private final Map<String, ReviewSession> sessionStore = new ConcurrentHashMap<>();
     
@@ -69,6 +73,52 @@ public class ReviewService {
                 ? user.getReviewMode().name() 
                 : User.ReviewMode.CARD.name();
         
+        return ReviewDTO.TodayResponse.builder()
+                .list(list)
+                .total((long) list.size())
+                .sessionId(sessionId)
+                .reviewMode(reviewMode)
+                .build();
+    }
+
+    public ReviewDTO.TodayResponse getWordBookReviews(Long userId, Long wordBookId) {
+        List<ReviewRecord> records = reviewRecordRepository.findTodayReviewsByWordBookId(userId, LocalDateTime.now(), wordBookId);
+
+        List<ReviewDTO.Response> list = records.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        Set<Long> existingWordIds = list.stream()
+                .map(ReviewDTO.Response::getWordId)
+                .collect(Collectors.toSet());
+
+        List<Word> newWords = reviewRecordRepository.findNewWordsByWordBookId(userId, wordBookId);
+        for (Word word : newWords) {
+            if (!existingWordIds.contains(word.getId())) {
+                list.add(ReviewDTO.Response.builder()
+                        .wordId(word.getId())
+                        .word(word.getWord())
+                        .phonetic(word.getPhonetic())
+                        .meaning(word.getMeaning())
+                        .example(word.getExample())
+                        .proficiency(0)
+                        .consecutiveKnown(0)
+                        .consecutiveUnknown(0)
+                        .build());
+            }
+        }
+
+        String sessionId = UUID.randomUUID().toString();
+        List<Long> wordIds = list.stream()
+                .map(ReviewDTO.Response::getWordId)
+                .collect(Collectors.toList());
+        sessionStore.put(sessionId, new ReviewSession(userId, wordIds));
+
+        User user = userRepository.findById(userId).orElse(null);
+        String reviewMode = user != null && user.getReviewMode() != null
+                ? user.getReviewMode().name()
+                : User.ReviewMode.CARD.name();
+
         return ReviewDTO.TodayResponse.builder()
                 .list(list)
                 .total((long) list.size())
