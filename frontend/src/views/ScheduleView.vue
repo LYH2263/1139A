@@ -163,12 +163,12 @@
 
                 <div class="schedule-dates">
                   <span class="date-item">
-                    <el-icon><StartOfLine /></el-icon>
+                    <el-icon><Calendar /></el-icon>
                     {{ formatShortDate(schedule.startDate) }}
                   </span>
                   <span class="date-separator">→</span>
                   <span class="date-item">
-                    <el-icon><EndOfLine /></el-icon>
+                    <el-icon><Calendar /></el-icon>
                     {{ formatShortDate(schedule.endDate) }}
                   </span>
                 </div>
@@ -257,12 +257,12 @@
 
                 <div class="schedule-dates">
                   <span class="date-item">
-                    <el-icon><StartOfLine /></el-icon>
+                    <el-icon><Calendar /></el-icon>
                     {{ formatShortDate(schedule.startDate) }}
                   </span>
                   <span class="date-separator">→</span>
                   <span class="date-item">
-                    <el-icon><EndOfLine /></el-icon>
+                    <el-icon><Calendar /></el-icon>
                     {{ formatShortDate(schedule.endDate) }}
                   </span>
                 </div>
@@ -647,8 +647,6 @@ import {
   VideoPause,
   Delete,
   Search,
-  StartOfLine,
-  EndOfLine,
   Refresh,
   Clock,
   CircleCheckFilled,

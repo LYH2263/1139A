@@ -38,7 +38,7 @@
               @click="selectedMode = 'SPELLING'"
             >
               <div class="mode-icon spelling-icon">
-                <el-icon><Keyboard /></el-icon>
+                <el-icon><EditPen /></el-icon>
               </div>
               <h3 class="mode-title">拼写模式</h3>
               <p class="mode-desc">看中文释义，输入完整的英文单词</p>
@@ -241,7 +241,7 @@
                 </div>
                 <div class="accuracy-item" :class="{ active: quizMode === 'SPELLING' }">
                   <div class="accuracy-label">
-                    <el-icon><Keyboard /></el-icon>
+                    <el-icon><EditPen /></el-icon>
                     <span>拼写题</span>
                   </div>
                   <div class="accuracy-value">
@@ -313,7 +313,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
-import { EditPen, Timer, CircleCheck, TrendCharts, List, Keyboard, Edit, Warning, CircleClose } from '@element-plus/icons-vue'
+import { EditPen, Timer, CircleCheck, TrendCharts, List, Edit, Warning, CircleClose } from '@element-plus/icons-vue'
 import type { QuizQuestion, QuizSubmitResponse, QuizMode as QuizModeType, QuizAnswer, AnswerResult } from '@/types'
 import { quizApi } from '@/api/study'
 import PageHeader from '@/components/ui/PageHeader.vue'
