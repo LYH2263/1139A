@@ -443,12 +443,44 @@
               />
             </el-select>
 
+            <div v-if="wordBookWords.length > 0" class="filter-bar">
+              <el-input
+                v-model="wordBookFilterKeyword"
+                placeholder="搜索单词或释义..."
+                clearable
+                class="filter-input"
+              >
+                <template #prefix>
+                  <el-icon><Search /></el-icon>
+                </template>
+              </el-input>
+              <el-select
+                v-model="wordBookFilterPos"
+                placeholder="词性筛选"
+                clearable
+                class="filter-pos"
+              >
+                <el-option
+                  v-for="opt in posOptions"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
+              </el-select>
+            </div>
+
             <div v-if="wordBookWords.length > 0" class="wordbook-actions">
               <el-checkbox
                 v-model="selectAllWordBook"
                 @change="handleSelectAllWordBook"
               >
-                全选 ({{ wordBookWords.length }} 词)
+                全选词书 ({{ wordBookWords.length }} 词)
+              </el-checkbox>
+              <el-checkbox
+                v-if="wordBookFilterKeyword || wordBookFilterPos"
+                v-model="selectAllFilteredWordBook"
+              >
+                全选筛选结果 ({{ filteredWordBookWords.length }} 词)
               </el-checkbox>
               <span class="selected-count">
                 已选 {{ getWordBookSelectedCount() }} 词
@@ -456,14 +488,20 @@
             </div>
 
             <div class="word-list-scroll">
-              <el-checkbox-group v-model="selectedWordIds">
+              <el-empty
+                v-if="filteredWordBookWords.length === 0 && wordBookWords.length > 0"
+                description="没有匹配的单词"
+                :image-size="80"
+              />
+              <el-checkbox-group v-else v-model="selectedWordIds">
                 <div
-                  v-for="word in wordBookWords"
+                  v-for="word in filteredWordBookWords"
                   :key="word.id"
                   class="word-select-item"
                 >
                   <el-checkbox :value="word.id">
                     <span class="word-name">{{ word.word }}</span>
+                    <el-tag v-if="word.pos" size="small" type="info" class="word-pos-tag">{{ word.pos }}</el-tag>
                     <span class="word-mean">{{ word.meaning }}</span>
                   </el-checkbox>
                 </div>
@@ -686,11 +724,69 @@ const wordSource = ref<'wordbook' | 'search'>('wordbook')
 const selectedWordBookId = ref<number | null>(null)
 const selectAllWordBook = ref(false)
 const searchKeyword = ref('')
+const wordBookFilterKeyword = ref('')
+const wordBookFilterPos = ref('')
 const wordBooks = ref<WordBook[]>([])
 const wordBookWords = ref<Word[]>([])
 const searchedWords = ref<Word[]>([])
 const selectedWordIds = ref<number[]>([])
 const submitting = ref(false)
+
+const posOptions = [
+  { label: '全部词性', value: '' },
+  { label: '名词 n.', value: 'n' },
+  { label: '动词 v.', value: 'v' },
+  { label: '形容词 adj.', value: 'adj' },
+  { label: '副词 adv.', value: 'adv' },
+  { label: '介词 prep.', value: 'prep' },
+  { label: '连词 conj.', value: 'conj' },
+  { label: '代词 pron.', value: 'pron' },
+  { label: '冠词 art.', value: 'art' },
+  { label: '数词 num.', value: 'num' },
+  { label: '感叹词 int.', value: 'int' }
+]
+
+const filteredWordBookWords = computed(() => {
+  let result = wordBookWords.value
+  if (wordBookFilterKeyword.value.trim()) {
+    const kw = wordBookFilterKeyword.value.trim().toLowerCase()
+    result = result.filter(w =>
+      w.word.toLowerCase().includes(kw) ||
+      w.meaning.toLowerCase().includes(kw)
+    )
+  }
+  if (wordBookFilterPos.value) {
+    result = result.filter(w => w.pos === wordBookFilterPos.value)
+  }
+  return result
+})
+
+const filteredSearchedWords = computed(() => {
+  return searchedWords.value
+})
+
+const selectAllFilteredWordBook = ref(false)
+
+watch(selectAllFilteredWordBook, (val: boolean) => {
+  const filteredIds = filteredWordBookWords.value.map(w => w.id)
+  if (val) {
+    const existing = new Set(selectedWordIds.value)
+    filteredIds.forEach(id => existing.add(id))
+    selectedWordIds.value = Array.from(existing)
+  } else {
+    const filteredSet = new Set(filteredIds)
+    selectedWordIds.value = selectedWordIds.value.filter(id => !filteredSet.has(id))
+  }
+})
+
+watch([filteredWordBookWords, selectedWordIds], () => {
+  if (filteredWordBookWords.value.length === 0) {
+    selectAllFilteredWordBook.value = false
+    return
+  }
+  const filteredIds = filteredWordBookWords.value.map(w => w.id)
+  selectAllFilteredWordBook.value = filteredIds.every(id => selectedWordIds.value.includes(id))
+}, { deep: true })
 
 const createForm = reactive({
   name: '',
@@ -922,6 +1018,7 @@ function openCreateDialog() {
 }
 
 function resetCreateForm() {
+  createStep.value = 0
   createForm.name = ''
   createForm.dailyCount = 20
   createForm.startDate = formatDateString(new Date())
@@ -929,7 +1026,10 @@ function resetCreateForm() {
   wordSource.value = 'wordbook'
   selectedWordBookId.value = null
   selectAllWordBook.value = false
+  selectAllFilteredWordBook.value = false
   searchKeyword.value = ''
+  wordBookFilterKeyword.value = ''
+  wordBookFilterPos.value = ''
   wordBookWords.value = []
   searchedWords.value = []
   selectedWordIds.value = []
@@ -947,6 +1047,9 @@ async function fetchWordBooks() {
 async function handleWordBookChange(wordBookId: number) {
   wordBookWords.value = []
   selectAllWordBook.value = false
+  selectAllFilteredWordBook.value = false
+  wordBookFilterKeyword.value = ''
+  wordBookFilterPos.value = ''
   try {
     wordBookWords.value = await wordBookApi.getWordBookWords(wordBookId)
   } catch (error) {
@@ -1633,6 +1736,36 @@ onMounted(() => {
 
   .bar-content {
     gap: var(--space-xs);
+  }
+}
+
+.filter-bar {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.filter-input {
+  flex: 1;
+}
+
+.filter-pos {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.word-pos-tag {
+  margin: 0 var(--space-sm);
+  font-weight: 400;
+}
+
+@media (max-width: 640px) {
+  .filter-bar {
+    flex-direction: column;
+  }
+
+  .filter-pos {
+    width: 100%;
   }
 }
 </style>
