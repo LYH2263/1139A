@@ -1,6 +1,5 @@
 package com.wordmind.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.wordmind.dto.ApiResponse;
 import com.wordmind.dto.StatsDTO;
 import com.wordmind.dto.StudyPlanDTO;
@@ -49,7 +48,7 @@ public class StatsController {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ApiResponse<StatsDTO.ShareResponse> createShare(
             HttpServletRequest request,
-            @Valid @RequestBody StatsDTO.ShareRequest shareRequest) throws JsonProcessingException {
+            @Valid @RequestBody StatsDTO.ShareRequest shareRequest) {
         Long userId = getUserIdFromRequest(request);
         return ApiResponse.success(statsService.createShareToken(userId, shareRequest));
     }

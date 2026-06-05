@@ -42,16 +42,9 @@ public interface ReviewRecordRepository extends JpaRepository<ReviewRecord, Long
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
-    @Query("SELECT COUNT(DISTINCT DATE(rr.createdAt)) FROM ReviewRecord rr WHERE rr.userId = :userId " +
-           "AND rr.createdAt >= :startDate AND rr.createdAt < :endDate")
-    Long countActiveDays(
-            @Param("userId") Long userId,
-            @Param("startDate") LocalDateTime startDate,
-            @Param("endDate") LocalDateTime endDate);
-
-    @Query("SELECT rr FROM ReviewRecord rr WHERE rr.userId = :userId " +
+    @Query("SELECT DISTINCT rr.createdAt FROM ReviewRecord rr WHERE rr.userId = :userId " +
            "AND rr.createdAt >= :startDate AND rr.createdAt < :endDate ORDER BY rr.createdAt ASC")
-    List<ReviewRecord> findByUserIdAndDateRange(
+    List<LocalDateTime> findActiveDateTime(
             @Param("userId") Long userId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);

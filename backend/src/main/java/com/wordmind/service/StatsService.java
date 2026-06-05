@@ -1,7 +1,5 @@
 package com.wordmind.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wordmind.dto.StatsDTO;
 import com.wordmind.dto.StudyPlanDTO;
 import com.wordmind.entity.QuizRecord;
@@ -25,7 +23,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -174,8 +171,14 @@ public class StatsService {
     }
 
     private Integer calculateContinuityScore(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
-        Long activeDays = reviewRecordRepository.countActiveDays(userId, startDate, endDate);
-        if (activeDays == null) activeDays = 0L;
+        List<LocalDateTime> activeDateTimes = reviewRecordRepository.findActiveDateTime(userId, startDate, endDate);
+        long activeDays = 0L;
+        if (activeDateTimes != null) {
+            activeDays = activeDateTimes.stream()
+                    .map(LocalDateTime::toLocalDate)
+                    .distinct()
+                    .count();
+        }
 
         long totalDays = ChronoUnit.DAYS.between(startDate.toLocalDate(), endDate.toLocalDate()) + 1;
         if (totalDays <= 0) totalDays = 1;
@@ -185,9 +188,10 @@ public class StatsService {
     }
 
     @Transactional
-    public StatsDTO.ShareResponse createShareToken(Long userId, StatsDTO.ShareRequest request) throws JsonProcessingException {
-        LocalDateTime startDate = LocalDateTime.parse(request.getStartDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        LocalDateTime endDate = LocalDateTime.parse(request.getEndDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    public StatsDTO.ShareResponse createShareToken(Long userId, StatsDTO.ShareRequest request) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        LocalDateTime startDate = LocalDateTime.parse(request.getStartDate(), formatter);
+        LocalDateTime endDate = LocalDateTime.parse(request.getEndDate(), formatter);
 
         String token = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
         LocalDateTime expiresAt = LocalDateTime.now().plusDays(7);

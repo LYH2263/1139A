@@ -44,7 +44,7 @@ public interface QuizRecordRepository extends JpaRepository<QuizRecord, Long> {
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate);
 
-    @Query("SELECT SUM(qr.duration) FROM QuizRecord qr WHERE qr.userId = :userId " +
+    @Query("SELECT COALESCE(SUM(qr.duration), 0) FROM QuizRecord qr WHERE qr.userId = :userId " +
            "AND qr.createdAt >= :startDate AND qr.createdAt < :endDate")
     Long sumDurationByUserIdAndDateRange(
             @Param("userId") Long userId,
