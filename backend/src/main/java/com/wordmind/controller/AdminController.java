@@ -101,6 +101,21 @@ public class AdminController {
         return ApiResponse.success();
     }
     
+    @GetMapping("/relations/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<java.util.List<MindMapDTO.PendingRelationItem>> getPendingRelations() {
+        return ApiResponse.success(relationService.getPendingRelations());
+    }
+    
+    @PostMapping("/relations/{id}/review")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> reviewRelation(
+            @PathVariable Long id,
+            @Valid @RequestBody MindMapDTO.RelationReviewRequest request) {
+        relationService.reviewRelation(id, request);
+        return ApiResponse.success();
+    }
+    
     private static class ImportResult {
         public final int importedCount;
         public final List<String> failedRows;

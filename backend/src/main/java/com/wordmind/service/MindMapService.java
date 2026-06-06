@@ -25,6 +25,9 @@ public class MindMapService {
     @Autowired
     private ReviewRecordRepository reviewRecordRepository;
     
+    @Autowired
+    private RelationService relationService;
+    
     private static final Map<WordRelation.RelationType, Integer> RELATION_WEIGHTS = Map.of(
             WordRelation.RelationType.SYNONYM, 4,
             WordRelation.RelationType.ROOT, 3,
@@ -272,25 +275,6 @@ public class MindMapService {
     }
     
     private MindMapDTO.RelationEdge createEdge(WordRelation relation) {
-        String label = getRelationLabel(relation.getRelationType());
-        return MindMapDTO.RelationEdge.builder()
-                .source(relation.getSourceWordId())
-                .target(relation.getTargetWordId())
-                .relationType(relation.getRelationType().name())
-                .label(label)
-                .build();
-    }
-    
-    private String getRelationLabel(WordRelation.RelationType type) {
-        switch (type) {
-            case SYNONYM: return "同义";
-            case ANTONYM: return "反义";
-            case TOPIC: return "主题";
-            case ROOT: return "词根";
-            case PREFIX: return "前缀";
-            case SUFFIX: return "后缀";
-            case SCENE: return "场景";
-            default: return type.name();
-        }
+        return relationService.buildRelationEdge(relation);
     }
 }

@@ -333,6 +333,7 @@ public class DataInitializer {
         r.setSourceWordId(source);
         r.setTargetWordId(target);
         r.setRelationType(type);
+        r.setStatus(WordRelation.RelationStatus.APPROVED);
         repo.save(r);
     }
 

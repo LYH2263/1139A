@@ -73,10 +73,15 @@ export interface MindMapNode {
 }
 
 export interface MindMapEdge {
+  id: number
   source: number
   target: number
   relationType: string
   label: string
+  createdBy?: number
+  createdByUsername?: string
+  status?: string
+  isUserContribution?: boolean
 }
 
 export interface MindMapResponse {
@@ -84,6 +89,27 @@ export interface MindMapResponse {
   nodes: MindMapNode[]
   edges: MindMapEdge[]
 }
+
+export interface PendingRelationItem {
+  id: number
+  sourceWordId: number
+  sourceWord: string
+  targetWordId: number
+  targetWord: string
+  relationType: string
+  relationLabel: string
+  createdBy?: number
+  createdByUsername?: string
+  createdAt: string
+}
+
+export interface RelationCreateRequest {
+  sourceWordId: number
+  targetWordId: number
+  relationType: string
+}
+
+export type RelationType = 'SYNONYM' | 'ANTONYM' | 'TOPIC' | 'ROOT' | 'PREFIX' | 'SUFFIX' | 'SCENE'
 
 export interface PathWordNode {
   id: number

@@ -2,6 +2,7 @@ package com.wordmind.entity;
 
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -24,17 +25,34 @@ public class WordRelation {
     @Column(name = "relation_type", nullable = false, length = 20)
     private RelationType relationType;
     
+    @Column(name = "created_by")
+    private Long createdBy;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 20)
+    private RelationStatus status = RelationStatus.APPROVED;
+    
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+    
     public enum RelationType {
-        SYNONYM,    // 同义词
-        ANTONYM,    // 反义词
-        TOPIC,      // 主题相关
-        ROOT,       // 词根
-        PREFIX,     // 前缀
-        SUFFIX,     // 后缀
-        SCENE       // 场景相关
+        SYNONYM,
+        ANTONYM,
+        TOPIC,
+        ROOT,
+        PREFIX,
+        SUFFIX,
+        SCENE
+    }
+    
+    public enum RelationStatus {
+        PENDING,
+        APPROVED,
+        REJECTED
     }
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotNull;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class MindMapDTO {
@@ -37,10 +38,15 @@ public class MindMapDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class RelationEdge {
+        private Long id;
         private Long source;
         private Long target;
         private String relationType;
         private String label;
+        private Long createdBy;
+        private String createdByUsername;
+        private String status;
+        private Boolean isUserContribution;
     }
     
     @Data
@@ -56,6 +62,34 @@ public class MindMapDTO {
         
         @NotNull(message = "关系类型不能为空")
         private String relationType;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PendingRelationItem {
+        private Long id;
+        private Long sourceWordId;
+        private String sourceWord;
+        private Long targetWordId;
+        private String targetWord;
+        private String relationType;
+        private String relationLabel;
+        private Long createdBy;
+        private String createdByUsername;
+        private LocalDateTime createdAt;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RelationReviewRequest {
+        @NotNull(message = "审核结果不能为空")
+        private Boolean approved;
+        
+        private String rejectReason;
     }
     
     @Data

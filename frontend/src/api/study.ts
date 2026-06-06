@@ -27,7 +27,9 @@ import type {
   UpdateScheduleRequest,
   CompleteTodayRequest,
   CalendarMonthResponse,
-  CalendarDayDetail
+  CalendarDayDetail,
+  MindMapEdge,
+  RelationCreateRequest
 } from '@/types'
 
 export const mindMapApi = {
@@ -36,6 +38,12 @@ export const mindMapApi = {
   },
   getLearningPath: (wordId: number, depth: number = 2): Promise<LearningPathResponse> => {
     return api.get(`/mindmap/${wordId}/learning-path`, { params: { depth } })
+  },
+  createRelation: (request: RelationCreateRequest): Promise<MindMapEdge> => {
+    return api.post('/relations', request)
+  },
+  deleteRelation: (id: number): Promise<void> => {
+    return api.delete(`/relations/${id}`)
   }
 }
 

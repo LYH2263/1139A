@@ -7,6 +7,73 @@
 
     <div class="admin-content">
       <el-tabs v-model="activeTab" class="admin-tabs">
+        <el-tab-pane label="关系审核" name="relations">
+          <template #label>
+            <el-icon><Connection /></el-icon>
+            <span class="tab-label">关系审核</span>
+            <el-badge v-if="pendingRelations.length > 0" :value="pendingRelations.length" class="tab-badge" />
+          </template>
+
+          <div class="tab-actions">
+            <el-button type="primary" @click="fetchPendingRelations" :loading="relationsLoading">
+              <el-icon class="mr-1"><Refresh /></el-icon> 刷新
+            </el-button>
+          </div>
+
+          <SectionCard :body-style="{ padding: '0' }">
+            <el-table
+              :data="pendingRelations"
+              v-loading="relationsLoading"
+              stripe
+              style="width: 100%"
+              empty-text="暂无待审核的关系"
+            >
+              <el-table-column prop="id" label="ID" width="80" align="center" />
+
+              <el-table-column label="源单词" width="140">
+                <template #default="{ row }">
+                  <span class="word-text">{{ row.sourceWord }}</span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="关系" width="100" align="center">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="getAdminRelationTagType(row.relationType)">{{ row.relationLabel }}</el-tag>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="目标单词" width="140">
+                <template #default="{ row }">
+                  <span class="word-text">{{ row.targetWord }}</span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="贡献用户" width="140">
+                <template #default="{ row }">
+                  <span class="user-text">{{ row.createdByUsername || '未知' }}</span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="提交时间" width="180">
+                <template #default="{ row }">
+                  <span class="time-text">{{ formatDate(row.createdAt) }}</span>
+                </template>
+              </el-table-column>
+
+              <el-table-column label="操作" width="180" fixed="right" align="center">
+                <template #default="{ row }">
+                  <el-button link type="success" size="small" @click="handleApproveRelation(row)">
+                    <el-icon class="mr-1"><Check /></el-icon> 通过
+                  </el-button>
+                  <el-button link type="danger" size="small" @click="handleRejectRelation(row)">
+                    <el-icon class="mr-1"><Close /></el-icon> 拒绝
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </SectionCard>
+        </el-tab-pane>
+
         <el-tab-pane label="单词管理" name="words">
           <template #label>
             <el-icon><Document /></el-icon>
@@ -392,15 +459,22 @@ import {
   Notebook,
   Document,
   SetUp,
-  ArrowRight
+  ArrowRight,
+  Connection,
+  Refresh,
+  Check,
+  Close
 } from '@element-plus/icons-vue'
-import type { Word, WordBook } from '@/types'
+import type { Word, WordBook, PendingRelationItem } from '@/types'
 import { wordApi } from '@/api/word'
 import { wordBookApi } from '@/api/wordbook'
 import PageHeader from '@/components/ui/PageHeader.vue'
 import SectionCard from '@/components/ui/SectionCard.vue'
 
-const activeTab = ref('words')
+const activeTab = ref('relations')
+
+const relationsLoading = ref(false)
+const pendingRelations = ref<PendingRelationItem[]>([])
 
 // Word management
 const wordLoading = ref(false)
@@ -825,7 +899,95 @@ const getDifficultyTagType = (level: string) => {
   return map[level] || 'info'
 }
 
+const fetchPendingRelations = async () => {
+  relationsLoading.value = true
+  try {
+    pendingRelations.value = await wordApi.getPendingRelations()
+  } catch (error) {
+    console.error(error)
+    ElMessage.error('加载待审核关系失败')
+  } finally {
+    relationsLoading.value = false
+  }
+}
+
+const handleApproveRelation = async (row: PendingRelationItem) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定通过 "${row.sourceWord}" ${row.relationLabel} "${row.targetWord}" 这条关系吗？`,
+      '审核通过',
+      {
+        confirmButtonText: '通过',
+        cancelButtonText: '取消',
+        type: 'success'
+      }
+    )
+    
+    await wordApi.reviewRelation(row.id, true)
+    ElMessage.success('已通过审核')
+    pendingRelations.value = pendingRelations.value.filter(r => r.id !== row.id)
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+    }
+  }
+}
+
+const handleRejectRelation = async (row: PendingRelationItem) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定拒绝 "${row.sourceWord}" ${row.relationLabel} "${row.targetWord}" 这条关系吗？`,
+      '审核拒绝',
+      {
+        confirmButtonText: '拒绝',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    await wordApi.reviewRelation(row.id, false)
+    ElMessage.success('已拒绝')
+    pendingRelations.value = pendingRelations.value.filter(r => r.id !== row.id)
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error(error)
+    }
+  }
+}
+
+const formatDate = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getAdminRelationTagType = (type: string) => {
+  const map: Record<string, '' | 'success' | 'warning' | 'danger' | 'info' | 'primary'> = {
+    SYNONYM: 'success',
+    ANTONYM: 'danger',
+    TOPIC: 'primary',
+    ROOT: 'warning',
+    PREFIX: 'info',
+    SUFFIX: '',
+    SCENE: 'warning'
+  }
+  return map[type] || 'info'
+}
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'relations') {
+    fetchPendingRelations()
+  }
+})
+
 onMounted(() => {
+  fetchPendingRelations()
   fetchWords()
   fetchWordBooks()
 })
@@ -834,6 +996,21 @@ onMounted(() => {
 <style scoped>
 .admin-tabs :deep(.el-tabs__header) {
   margin-bottom: var(--space-lg);
+}
+
+.tab-badge {
+  margin-left: 6px;
+}
+
+.user-text {
+  color: var(--c-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.time-text {
+  color: var(--c-text-secondary);
+  font-size: var(--font-size-sm);
+  font-family: 'Courier New', monospace;
 }
 
 .tab-label {
