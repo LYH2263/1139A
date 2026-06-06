@@ -65,6 +65,12 @@ const router = createRouter({
           meta: { title: '今日复习' }
         },
         {
+          path: 'review/calendar',
+          name: 'ReviewCalendar',
+          component: () => import('@/views/ReviewCalendarView.vue'),
+          meta: { title: '复习日历' }
+        },
+        {
           path: 'quiz',
           name: 'Quiz',
           component: () => import('@/views/QuizView.vue'),

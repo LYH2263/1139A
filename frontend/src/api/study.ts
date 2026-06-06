@@ -25,7 +25,9 @@ import type {
   ScheduleListResponse,
   CreateScheduleRequest,
   UpdateScheduleRequest,
-  CompleteTodayRequest
+  CompleteTodayRequest,
+  CalendarMonthResponse,
+  CalendarDayDetail
 } from '@/types'
 
 export const mindMapApi = {
@@ -60,6 +62,14 @@ export const reviewApi = {
 
   saveSettings: (reviewMode: string): Promise<ReviewSettingsResponse> => {
     return api.put('/reviews/settings', { reviewMode })
+  },
+
+  getCalendarMonth: (month: string): Promise<CalendarMonthResponse> => {
+    return api.get('/reviews/calendar', { params: { month } })
+  },
+
+  getCalendarDayDetail: (date: string): Promise<CalendarDayDetail> => {
+    return api.get('/reviews/calendar/day', { params: { date } })
   }
 }
 

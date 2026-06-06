@@ -10,7 +10,7 @@
       </div>
       
       <el-menu
-        :default-active="$route.path"
+        :default-active="activeMenuIndex"
         router
         class="main-menu"
         :collapse="isCollapsed"
@@ -99,7 +99,7 @@
         <span>WordMind</span>
       </div>
       <el-menu
-        :default-active="$route.path"
+        :default-active="activeMenuIndex"
         router
         class="drawer-menu"
       >
@@ -184,8 +184,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   DataLine, Document, Share, Calendar, Edit, Timer, Setting, 
@@ -195,9 +195,23 @@ import {
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const isCollapsed = ref(false)
 const showMobileDrawer = ref(false)
+
+const activeMenuIndex = computed(() => {
+  if (route.path.startsWith('/review')) {
+    return '/review'
+  }
+  if (route.path.startsWith('/quiz')) {
+    return '/quiz'
+  }
+  if (route.path.startsWith('/records')) {
+    return '/records'
+  }
+  return route.path
+})
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value

@@ -70,6 +70,24 @@ public class ReviewController {
         Long userId = getUserIdFromRequest(request);
         return ApiResponse.success(reviewService.saveSettings(userId, settingsRequest));
     }
+
+    @GetMapping("/calendar")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<ReviewDTO.CalendarMonthResponse> getCalendarMonth(
+            HttpServletRequest request,
+            @RequestParam String month) {
+        Long userId = getUserIdFromRequest(request);
+        return ApiResponse.success(reviewService.getCalendarMonth(userId, month));
+    }
+
+    @GetMapping("/calendar/day")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<ReviewDTO.CalendarDayDetail> getCalendarDayDetail(
+            HttpServletRequest request,
+            @RequestParam String date) {
+        Long userId = getUserIdFromRequest(request);
+        return ApiResponse.success(reviewService.getCalendarDayDetail(userId, date));
+    }
     
     private Long getUserIdFromRequest(HttpServletRequest request) {
         String token = request.getHeader("Authorization").substring(7);

@@ -12,7 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -358,6 +360,167 @@ public class ReviewService {
                 .createdAt(record != null ? record.getCreatedAt() : null)
                 .consecutiveKnown(consecutiveKnown)
                 .consecutiveUnknown(consecutiveUnknown)
+                .build();
+    }
+
+    public ReviewDTO.CalendarMonthResponse getCalendarMonth(Long userId, String month) {
+        YearMonth yearMonth = YearMonth.parse(month);
+        LocalDate startDate = yearMonth.atDay(1);
+        LocalDate endDate = yearMonth.atEndOfMonth();
+        LocalDateTime monthStart = startDate.atStartOfDay();
+        LocalDateTime monthEnd = endDate.plusDays(1).atStartOfDay();
+        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+        LocalDateTime todayEnd = LocalDate.now().plusDays(1).atStartOfDay();
+
+        Map<LocalDate, List<ReviewRecord>> reviewedByDate = new HashMap<>();
+        List<ReviewRecord> monthReviewed = reviewRecordRepository.findByUserIdAndDateRange(userId, monthStart, monthEnd);
+        for (ReviewRecord rr : monthReviewed) {
+            LocalDate date = rr.getCreatedAt().toLocalDate();
+            reviewedByDate.computeIfAbsent(date, k -> new ArrayList<>()).add(rr);
+        }
+
+        Map<LocalDate, List<ReviewRecord>> pendingByDate = new HashMap<>();
+        List<ReviewRecord> allRecords = reviewRecordRepository.findAllByUserId(userId);
+        LocalDateTime now = LocalDateTime.now();
+
+        for (ReviewRecord rr : allRecords) {
+            if (rr.getNextReviewAt() != null) {
+                LocalDate nextReviewDate = rr.getNextReviewAt().toLocalDate();
+                if (!nextReviewDate.isBefore(startDate) && !nextReviewDate.isAfter(endDate)) {
+                    if (rr.getNextReviewAt().isBefore(now) || 
+                        (rr.getNextReviewAt().isAfter(todayStart) && rr.getNextReviewAt().isBefore(todayEnd))) {
+                        pendingByDate.computeIfAbsent(nextReviewDate, k -> new ArrayList<>()).add(rr);
+                    }
+                }
+            }
+        }
+
+        Map<LocalDate, List<ReviewRecord>> predictedByDate = new HashMap<>();
+        for (ReviewRecord rr : allRecords) {
+            if (rr.getNextReviewAt() != null) {
+                LocalDate nextReviewDate = rr.getNextReviewAt().toLocalDate();
+                if (!nextReviewDate.isBefore(startDate) && !nextReviewDate.isAfter(endDate)) {
+                    if (rr.getNextReviewAt().isAfter(todayEnd)) {
+                        predictedByDate.computeIfAbsent(nextReviewDate, k -> new ArrayList<>()).add(rr);
+                    }
+                }
+            }
+        }
+
+        List<ReviewDTO.CalendarDayStats> days = new ArrayList<>();
+        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
+            int reviewedCount = reviewedByDate.getOrDefault(date, Collections.emptyList()).size();
+            int pendingCount = pendingByDate.getOrDefault(date, Collections.emptyList()).size();
+            int predictedCount = predictedByDate.getOrDefault(date, Collections.emptyList()).size();
+            int totalCount = reviewedCount + pendingCount + predictedCount;
+
+            days.add(ReviewDTO.CalendarDayStats.builder()
+                    .date(date.toString())
+                    .reviewedCount(reviewedCount)
+                    .pendingCount(pendingCount)
+                    .predictedCount(predictedCount)
+                    .totalCount(totalCount)
+                    .build());
+        }
+
+        return ReviewDTO.CalendarMonthResponse.builder()
+                .month(month)
+                .days(days)
+                .build();
+    }
+
+    public ReviewDTO.CalendarDayDetail getCalendarDayDetail(Long userId, String dateStr) {
+        LocalDate date = LocalDate.parse(dateStr);
+        LocalDateTime dayStart = date.atStartOfDay();
+        LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
+
+        List<ReviewRecord> dayReviewed = reviewRecordRepository.findByUserIdAndDateRange(userId, dayStart, dayEnd);
+        Map<Long, ReviewRecord> latestReviewed = new HashMap<>();
+        for (ReviewRecord rr : dayReviewed) {
+            Long wordId = rr.getWordId();
+            if (!latestReviewed.containsKey(wordId) || 
+                rr.getCreatedAt().isAfter(latestReviewed.get(wordId).getCreatedAt())) {
+                latestReviewed.put(wordId, rr);
+            }
+        }
+
+        List<ReviewDTO.CalendarDayWord> reviewedWords = new ArrayList<>();
+        for (ReviewRecord rr : latestReviewed.values()) {
+            Word word = wordRepository.findById(rr.getWordId()).orElse(null);
+            if (word != null) {
+                reviewedWords.add(ReviewDTO.CalendarDayWord.builder()
+                        .wordId(word.getId())
+                        .word(word.getWord())
+                        .phonetic(word.getPhonetic())
+                        .meaning(word.getMeaning())
+                        .proficiency(rr.getProficiency())
+                        .status("REVIEWED")
+                        .result(rr.getResult().name())
+                        .nextReviewAt(rr.getNextReviewAt())
+                        .reviewedAt(rr.getCreatedAt())
+                        .build());
+            }
+        }
+        reviewedWords.sort((a, b) -> b.getReviewedAt().compareTo(a.getReviewedAt()));
+
+        List<ReviewDTO.CalendarDayWord> pendingWords = new ArrayList<>();
+        boolean isFutureOrToday = !date.isBefore(LocalDate.now());
+        if (isFutureOrToday) {
+            List<ReviewRecord> allRecords = reviewRecordRepository.findAllByUserId(userId);
+            Set<Long> reviewedTodayIds = latestReviewed.keySet();
+
+            for (ReviewRecord rr : allRecords) {
+                if (rr.getNextReviewAt() != null && !reviewedTodayIds.contains(rr.getWordId())) {
+                    LocalDate nextReviewDate = rr.getNextReviewAt().toLocalDate();
+                    if (nextReviewDate.equals(date)) {
+                        if (date.equals(LocalDate.now()) && rr.getNextReviewAt().isAfter(now)) {
+                            Word word = wordRepository.findById(rr.getWordId()).orElse(null);
+                            if (word != null) {
+                                pendingWords.add(ReviewDTO.CalendarDayWord.builder()
+                                        .wordId(word.getId())
+                                        .word(word.getWord())
+                                        .phonetic(word.getPhonetic())
+                                        .meaning(word.getMeaning())
+                                        .proficiency(rr.getProficiency())
+                                        .status("PENDING")
+                                        .result(null)
+                                        .nextReviewAt(rr.getNextReviewAt())
+                                        .reviewedAt(null)
+                                        .build());
+                            }
+                        } else if (date.isAfter(LocalDate.now())) {
+                            Word word = wordRepository.findById(rr.getWordId()).orElse(null);
+                            if (word != null) {
+                                pendingWords.add(ReviewDTO.CalendarDayWord.builder()
+                                        .wordId(word.getId())
+                                        .word(word.getWord())
+                                        .phonetic(word.getPhonetic())
+                                        .meaning(word.getMeaning())
+                                        .proficiency(rr.getProficiency())
+                                        .status("PREDICTED")
+                                        .result(null)
+                                        .nextReviewAt(rr.getNextReviewAt())
+                                        .reviewedAt(null)
+                                        .build());
+                            }
+                        }
+                    }
+                }
+            }
+            pendingWords.sort((a, b) -> {
+                if (a.getNextReviewAt() == null) return 1;
+                if (b.getNextReviewAt() == null) return -1;
+                return a.getNextReviewAt().compareTo(b.getNextReviewAt());
+            });
+        }
+
+        return ReviewDTO.CalendarDayDetail.builder()
+                .date(dateStr)
+                .reviewedWords(reviewedWords)
+                .pendingWords(pendingWords)
+                .reviewedCount(reviewedWords.size())
+                .pendingCount(pendingWords.size())
                 .build();
     }
 }

@@ -63,4 +63,23 @@ public interface ReviewRecordRepository extends JpaRepository<ReviewRecord, Long
            "AND w.id NOT IN " +
            "(SELECT rr.wordId FROM ReviewRecord rr WHERE rr.userId = :userId)")
     List<Word> findNewWordsByWordBookId(@Param("userId") Long userId, @Param("wordBookId") Long wordBookId);
+
+    @Query("SELECT rr FROM ReviewRecord rr WHERE rr.userId = :userId " +
+           "AND rr.createdAt >= :startDate AND rr.createdAt < :endDate " +
+           "ORDER BY rr.createdAt DESC")
+    List<ReviewRecord> findByUserIdAndDateRange(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT rr FROM ReviewRecord rr WHERE rr.userId = :userId " +
+           "AND rr.nextReviewAt >= :startDate AND rr.nextReviewAt < :endDate " +
+           "ORDER BY rr.nextReviewAt ASC")
+    List<ReviewRecord> findUpcomingReviewsByDateRange(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT rr FROM ReviewRecord rr WHERE rr.userId = :userId")
+    List<ReviewRecord> findAllByUserId(@Param("userId") Long userId);
 }

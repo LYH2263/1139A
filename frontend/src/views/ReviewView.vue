@@ -5,6 +5,10 @@
       :subtitle="wordBookId ? '专注学习当前词书内的单词。' : '基于艾宾浩斯曲线智能安排复习计划。'"
     >
       <template #actions>
+        <el-button @click="$router.push('/review/calendar')">
+          <el-icon><Calendar /></el-icon>
+          日历视图
+        </el-button>
         <el-dropdown @command="handleModeChange" trigger="click">
           <el-button>
             <el-icon><Setting /></el-icon>

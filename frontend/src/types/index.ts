@@ -456,3 +456,36 @@ export interface UpdateScheduleRequest {
 export interface CompleteTodayRequest {
   completedWordIds: number[]
 }
+
+export interface CalendarDayWord {
+  wordId: number
+  word: string
+  phonetic?: string
+  meaning: string
+  proficiency: number
+  status: 'REVIEWED' | 'PENDING' | 'PREDICTED'
+  result?: string
+  nextReviewAt?: string
+  reviewedAt?: string
+}
+
+export interface CalendarDayStats {
+  date: string
+  reviewedCount: number
+  pendingCount: number
+  predictedCount: number
+  totalCount: number
+}
+
+export interface CalendarMonthResponse {
+  month: string
+  days: CalendarDayStats[]
+}
+
+export interface CalendarDayDetail {
+  date: string
+  reviewedWords: CalendarDayWord[]
+  pendingWords: CalendarDayWord[]
+  reviewedCount: number
+  pendingCount: number
+}
