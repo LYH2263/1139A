@@ -164,89 +164,11 @@ public class DataInitializer {
                 
                 // 时间类关系
                 createRelation(relationRepo, morning.getId(), night.getId(), WordRelation.RelationType.ANTONYM);
+            }
 
-                // 初始化语境例句数据
-                if (wordExampleRepo.count() == 0) {
-                    // happy (情感类)
-                    createWordExample(wordExampleRepo, happy.getId(), "She was happy to see her old friends again.", "她很高兴再次见到她的老朋友。", "社交场景");
-                    createWordExample(wordExampleRepo, happy.getId(), "The children were happy playing in the park.", "孩子们在公园里玩得很开心。", "休闲场景");
-                    createWordExample(wordExampleRepo, happy.getId(), "I'm happy that you passed the exam.", "我很高兴你通过了考试。", "学业场景");
-
-                    // sad (情感类)
-                    createWordExample(wordExampleRepo, sad.getId(), "He felt sad when his dog passed away.", "当他的狗去世时，他感到很悲伤。", "情感场景");
-                    createWordExample(wordExampleRepo, sad.getId(), "The sad movie made everyone cry.", "这部悲伤的电影让每个人都哭了。", "娱乐场景");
-                    createWordExample(wordExampleRepo, sad.getId(), "She was sad about leaving her hometown.", "她对离开家乡感到难过。", "生活场景");
-
-                    // excited (情感类)
-                    createWordExample(wordExampleRepo, excited.getId(), "I'm so excited about the trip to Paris!", "我对去巴黎旅行感到非常兴奋！", "旅行场景");
-                    createWordExample(wordExampleRepo, excited.getId(), "The children were excited to open their presents.", "孩子们兴奋地打开礼物。", "节日场景");
-                    createWordExample(wordExampleRepo, excited.getId(), "She was excited to start her new job.", "她很兴奋开始她的新工作。", "职场场景");
-
-                    // apple (食物类)
-                    createWordExample(wordExampleRepo, apple.getId(), "An apple a day keeps the doctor away.", "每天一个苹果，医生远离我。", "健康场景");
-                    createWordExample(wordExampleRepo, apple.getId(), "She picked a red apple from the tree.", "她从树上摘了一个红苹果。", "自然场景");
-                    createWordExample(wordExampleRepo, apple.getId(), "Would you like some apple pie for dessert?", "你想要一些苹果派当甜点吗？", "饮食场景");
-
-                    // water (食物类)
-                    createWordExample(wordExampleRepo, water.getId(), "Please drink more water every day.", "请每天多喝水。", "健康场景");
-                    createWordExample(wordExampleRepo, water.getId(), "The water in the lake is very clean.", "湖里的水非常清澈。", "自然场景");
-                    createWordExample(wordExampleRepo, water.getId(), "Can I have a glass of water, please?", "请给我一杯水好吗？", "日常场景");
-
-                    // run (动作类)
-                    createWordExample(wordExampleRepo, run.getId(), "I run five kilometers every morning.", "我每天早上跑五公里。", "运动场景");
-                    createWordExample(wordExampleRepo, run.getId(), "Don't run in the classroom.", "不要在教室里跑。", "学校场景");
-                    createWordExample(wordExampleRepo, run.getId(), "She had to run to catch the bus.", "她不得不跑去赶公交车。", "交通场景");
-
-                    // fast (大小/速度类)
-                    createWordExample(wordExampleRepo, fast.getId(), "He is a very fast runner.", "他是一个跑得很快的人。", "运动场景");
-                    createWordExample(wordExampleRepo, fast.getId(), "The fast train arrived on time.", "快速列车准时到达。", "交通场景");
-                    createWordExample(wordExampleRepo, fast.getId(), "Don't drive too fast on the highway.", "在高速公路上不要开得太快。", "驾驶场景");
-
-                    // beautiful (外貌类)
-                    createWordExample(wordExampleRepo, beautiful.getId(), "What a beautiful sunset!", "多么美丽的日落啊！", "自然场景");
-                    createWordExample(wordExampleRepo, beautiful.getId(), "She is a beautiful and kind person.", "她是一个美丽善良的人。", "人物描述");
-                    createWordExample(wordExampleRepo, beautiful.getId(), "They live in a beautiful house by the sea.", "他们住在海边一栋漂亮的房子里。", "居住场景");
-
-                    // big (大小类)
-                    createWordExample(wordExampleRepo, big.getId(), "This is a big decision for our family.", "这对我们家来说是一个重大决定。", "生活场景");
-                    createWordExample(wordExampleRepo, big.getId(), "He gave me a big surprise yesterday.", "他昨天给了我一个大惊喜。", "情感场景");
-                    createWordExample(wordExampleRepo, big.getId(), "The company has a big office in Shanghai.", "该公司在上海有一个很大的办公室。", "职场场景");
-
-                    // small (大小类)
-                    createWordExample(wordExampleRepo, small.getId(), "She lives in a small apartment in the city.", "她住在城里的一套小公寓里。", "居住场景");
-                    createWordExample(wordExampleRepo, small.getId(), "Even small changes can make a difference.", "即使是微小的改变也能带来不同。", "励志场景");
-                    createWordExample(wordExampleRepo, small.getId(), "The small child was holding her mother's hand.", "那个小孩牵着她妈妈的手。", "家庭场景");
-
-                    // book (学习类)
-                    createWordExample(wordExampleRepo, book.getId(), "I'm reading an interesting book about history.", "我正在读一本关于历史的有趣的书。", "阅读场景");
-                    createWordExample(wordExampleRepo, book.getId(), "Please book a table for two at the restaurant.", "请在餐厅预订一张两人桌。", "预订场景");
-                    createWordExample(wordExampleRepo, book.getId(), "She wrote a book about her travels.", "她写了一本关于她旅行的书。", "创作场景");
-
-                    // study (学习类)
-                    createWordExample(wordExampleRepo, study.getId(), "I study English every evening after work.", "我每天晚上下班后学习英语。", "学习场景");
-                    createWordExample(wordExampleRepo, study.getId(), "She went to the library to study for the exam.", "她去图书馆为考试学习。", "学业场景");
-                    createWordExample(wordExampleRepo, study.getId(), "Scientists study the behavior of animals.", "科学家研究动物的行为。", "科研场景");
-
-                    // good (品质类)
-                    createWordExample(wordExampleRepo, good.getId(), "This is a very good restaurant.", "这是一家非常好的餐厅。", "餐饮场景");
-                    createWordExample(wordExampleRepo, good.getId(), "He is a good friend who always helps me.", "他是一个总是帮助我的好朋友。", "社交场景");
-                    createWordExample(wordExampleRepo, good.getId(), "Doing exercise is good for your health.", "锻炼对你的健康有益。", "健康场景");
-
-                    // bad (品质类)
-                    createWordExample(wordExampleRepo, bad.getId(), "Smoking is bad for your health.", "吸烟对你的健康有害。", "健康场景");
-                    createWordExample(wordExampleRepo, bad.getId(), "He had a bad day at work today.", "他今天工作很不顺心。", "职场场景");
-                    createWordExample(wordExampleRepo, bad.getId(), "The food at that restaurant was really bad.", "那家餐厅的食物真的很差。", "餐饮场景");
-
-                    // morning (时间类)
-                    createWordExample(wordExampleRepo, morning.getId(), "Good morning! How did you sleep?", "早上好！你睡得怎么样？", "问候场景");
-                    createWordExample(wordExampleRepo, morning.getId(), "The morning sun is very warm and gentle.", "早晨的阳光温暖而柔和。", "自然场景");
-                    createWordExample(wordExampleRepo, morning.getId(), "She drinks coffee every morning before work.", "她每天早上上班前喝咖啡。", "日常场景");
-
-                    // night (时间类)
-                    createWordExample(wordExampleRepo, night.getId(), "Good night! Sweet dreams!", "晚安！做个好梦！", "问候场景");
-                    createWordExample(wordExampleRepo, night.getId(), "The night sky is full of stars tonight.", "今晚的夜空布满星星。", "自然场景");
-                    createWordExample(wordExampleRepo, night.getId(), "He works the night shift at the hospital.", "他在医院上夜班。", "职场场景");
-                }
+            // 初始化语境例句数据（独立于单词初始化，确保老数据也能补齐）
+            if (wordExampleRepo.count() == 0) {
+                initWordExamples(wordRepo, wordExampleRepo);
             }
 
             // 初始化词书数据
@@ -344,6 +266,120 @@ public class DataInitializer {
         e.setTranslation(translation);
         e.setScene(scene);
         repo.save(e);
+    }
+
+    private void initWordExamples(WordRepository wordRepo, WordExampleRepository exampleRepo) {
+        // happy (情感类)
+        wordRepo.findByWord("happy").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "She was happy to see her old friends again.", "她很高兴再次见到她的老朋友。", "社交场景");
+            createWordExample(exampleRepo, w.getId(), "The children were happy playing in the park.", "孩子们在公园里玩得很开心。", "休闲场景");
+            createWordExample(exampleRepo, w.getId(), "I'm happy that you passed the exam.", "我很高兴你通过了考试。", "学业场景");
+        });
+
+        // sad (情感类)
+        wordRepo.findByWord("sad").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "He felt sad when his dog passed away.", "当他的狗去世时，他感到很悲伤。", "情感场景");
+            createWordExample(exampleRepo, w.getId(), "The sad movie made everyone cry.", "这部悲伤的电影让每个人都哭了。", "娱乐场景");
+            createWordExample(exampleRepo, w.getId(), "She was sad about leaving her hometown.", "她对离开家乡感到难过。", "生活场景");
+        });
+
+        // excited (情感类)
+        wordRepo.findByWord("excited").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "I'm so excited about the trip to Paris!", "我对去巴黎旅行感到非常兴奋！", "旅行场景");
+            createWordExample(exampleRepo, w.getId(), "The children were excited to open their presents.", "孩子们兴奋地打开礼物。", "节日场景");
+            createWordExample(exampleRepo, w.getId(), "She was excited to start her new job.", "她很兴奋开始她的新工作。", "职场场景");
+        });
+
+        // apple (食物类)
+        wordRepo.findByWord("apple").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "An apple a day keeps the doctor away.", "每天一个苹果，医生远离我。", "健康场景");
+            createWordExample(exampleRepo, w.getId(), "She picked a red apple from the tree.", "她从树上摘了一个红苹果。", "自然场景");
+            createWordExample(exampleRepo, w.getId(), "Would you like some apple pie for dessert?", "你想要一些苹果派当甜点吗？", "饮食场景");
+        });
+
+        // water (食物类)
+        wordRepo.findByWord("water").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "Please drink more water every day.", "请每天多喝水。", "健康场景");
+            createWordExample(exampleRepo, w.getId(), "The water in the lake is very clean.", "湖里的水非常清澈。", "自然场景");
+            createWordExample(exampleRepo, w.getId(), "Can I have a glass of water, please?", "请给我一杯水好吗？", "日常场景");
+        });
+
+        // run (动作类)
+        wordRepo.findByWord("run").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "I run five kilometers every morning.", "我每天早上跑五公里。", "运动场景");
+            createWordExample(exampleRepo, w.getId(), "Don't run in the classroom.", "不要在教室里跑。", "学校场景");
+            createWordExample(exampleRepo, w.getId(), "She had to run to catch the bus.", "她不得不跑去赶公交车。", "交通场景");
+        });
+
+        // fast (大小/速度类)
+        wordRepo.findByWord("fast").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "He is a very fast runner.", "他是一个跑得很快的人。", "运动场景");
+            createWordExample(exampleRepo, w.getId(), "The fast train arrived on time.", "快速列车准时到达。", "交通场景");
+            createWordExample(exampleRepo, w.getId(), "Don't drive too fast on the highway.", "在高速公路上不要开得太快。", "驾驶场景");
+        });
+
+        // beautiful (外貌类)
+        wordRepo.findByWord("beautiful").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "What a beautiful sunset!", "多么美丽的日落啊！", "自然场景");
+            createWordExample(exampleRepo, w.getId(), "She is a beautiful and kind person.", "她是一个美丽善良的人。", "人物描述");
+            createWordExample(exampleRepo, w.getId(), "They live in a beautiful house by the sea.", "他们住在海边一栋漂亮的房子里。", "居住场景");
+        });
+
+        // big (大小类)
+        wordRepo.findByWord("big").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "This is a big decision for our family.", "这对我们家来说是一个重大决定。", "生活场景");
+            createWordExample(exampleRepo, w.getId(), "He gave me a big surprise yesterday.", "他昨天给了我一个大惊喜。", "情感场景");
+            createWordExample(exampleRepo, w.getId(), "The company has a big office in Shanghai.", "该公司在上海有一个很大的办公室。", "职场场景");
+        });
+
+        // small (大小类)
+        wordRepo.findByWord("small").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "She lives in a small apartment in the city.", "她住在城里的一套小公寓里。", "居住场景");
+            createWordExample(exampleRepo, w.getId(), "Even small changes can make a difference.", "即使是微小的改变也能带来不同。", "励志场景");
+            createWordExample(exampleRepo, w.getId(), "The small child was holding her mother's hand.", "那个小孩牵着她妈妈的手。", "家庭场景");
+        });
+
+        // book (学习类)
+        wordRepo.findByWord("book").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "I'm reading an interesting book about history.", "我正在读一本关于历史的有趣的书。", "阅读场景");
+            createWordExample(exampleRepo, w.getId(), "Please book a table for two at the restaurant.", "请在餐厅预订一张两人桌。", "预订场景");
+            createWordExample(exampleRepo, w.getId(), "She wrote a book about her travels.", "她写了一本关于她旅行的书。", "创作场景");
+        });
+
+        // study (学习类)
+        wordRepo.findByWord("study").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "I study English every evening after work.", "我每天晚上下班后学习英语。", "学习场景");
+            createWordExample(exampleRepo, w.getId(), "She went to the library to study for the exam.", "她去图书馆为考试学习。", "学业场景");
+            createWordExample(exampleRepo, w.getId(), "Scientists study the behavior of animals.", "科学家研究动物的行为。", "科研场景");
+        });
+
+        // good (品质类)
+        wordRepo.findByWord("good").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "This is a very good restaurant.", "这是一家非常好的餐厅。", "餐饮场景");
+            createWordExample(exampleRepo, w.getId(), "He is a good friend who always helps me.", "他是一个总是帮助我的好朋友。", "社交场景");
+            createWordExample(exampleRepo, w.getId(), "Doing exercise is good for your health.", "锻炼对你的健康有益。", "健康场景");
+        });
+
+        // bad (品质类)
+        wordRepo.findByWord("bad").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "Smoking is bad for your health.", "吸烟对你的健康有害。", "健康场景");
+            createWordExample(exampleRepo, w.getId(), "He had a bad day at work today.", "他今天工作很不顺心。", "职场场景");
+            createWordExample(exampleRepo, w.getId(), "The food at that restaurant was really bad.", "那家餐厅的食物真的很差。", "餐饮场景");
+        });
+
+        // morning (时间类)
+        wordRepo.findByWord("morning").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "Good morning! How did you sleep?", "早上好！你睡得怎么样？", "问候场景");
+            createWordExample(exampleRepo, w.getId(), "The morning sun is very warm and gentle.", "早晨的阳光温暖而柔和。", "自然场景");
+            createWordExample(exampleRepo, w.getId(), "She drinks coffee every morning before work.", "她每天早上上班前喝咖啡。", "日常场景");
+        });
+
+        // night (时间类)
+        wordRepo.findByWord("night").ifPresent(w -> {
+            createWordExample(exampleRepo, w.getId(), "Good night! Sweet dreams!", "晚安！做个好梦！", "问候场景");
+            createWordExample(exampleRepo, w.getId(), "The night sky is full of stars tonight.", "今晚的夜空布满星星。", "自然场景");
+            createWordExample(exampleRepo, w.getId(), "He works the night shift at the hospital.", "他在医院上夜班。", "职场场景");
+        });
     }
     
     private void createSampleReviewRecords(ReviewRecordRepository repo, Long userId) {

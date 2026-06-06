@@ -21,20 +21,26 @@
               <el-tooltip content="美式发音" placement="top">
                 <button
                   class="pronounce-btn"
-                  :class="{ active: accent === 'en-US' }"
+                  :class="{ active: accent === 'en-US', speaking: speaking && speakingLang === 'en-US' }"
                   @click="speak('en-US')"
                 >
-                  <el-icon><VideoPlay /></el-icon>
+                  <el-icon :class="{ 'icon-pulse': speaking && speakingLang === 'en-US' }">
+                    <VideoPlay v-if="!(speaking && speakingLang === 'en-US')" />
+                    <Loading v-else class="is-loading" />
+                  </el-icon>
                   <span class="accent-label">美</span>
                 </button>
               </el-tooltip>
               <el-tooltip content="英式发音" placement="top">
                 <button
                   class="pronounce-btn"
-                  :class="{ active: accent === 'en-GB' }"
+                  :class="{ active: accent === 'en-GB', speaking: speaking && speakingLang === 'en-GB' }"
                   @click="speak('en-GB')"
                 >
-                  <el-icon><VideoPlay /></el-icon>
+                  <el-icon :class="{ 'icon-pulse': speaking && speakingLang === 'en-GB' }">
+                    <VideoPlay v-if="!(speaking && speakingLang === 'en-GB')" />
+                    <Loading v-else class="is-loading" />
+                  </el-icon>
                   <span class="accent-label">英</span>
                 </button>
               </el-tooltip>
@@ -77,7 +83,7 @@
       </el-card>
 
       <!-- Context Examples Card -->
-      <el-card v-if="examples.length > 0" class="section-card">
+      <el-card class="section-card">
         <template #header>
           <div class="card-header">
             <el-icon class="header-icon"><Document /></el-icon>
@@ -85,7 +91,7 @@
             <span class="example-count">共 {{ examples.length }} 条</span>
           </div>
         </template>
-        <div class="examples-list" @click="handleExampleClick">
+        <div v-if="examples.length > 0" class="examples-list" @click="handleExampleClick">
           <div
             v-for="(ex, idx) in examples"
             :key="ex.id"
@@ -101,20 +107,18 @@
             <p v-if="ex.translation" class="example-translation">{{ ex.translation }}</p>
           </div>
         </div>
+        <el-empty v-else description="暂无额外语境例句" :image-size="100" />
       </el-card>
 
       <!-- Synonyms & Antonyms Card -->
-      <el-card
-        v-if="(word.synonyms && word.synonyms.length > 0) || (word.antonyms && word.antonyms.length > 0)"
-        class="section-card"
-      >
+      <el-card class="section-card">
         <template #header>
           <div class="card-header">
             <el-icon class="header-icon"><Connection /></el-icon>
             <span>近义词 / 反义词</span>
           </div>
         </template>
-        <div class="relations-container">
+        <div v-if="(word.synonyms && word.synonyms.length > 0) || (word.antonyms && word.antonyms.length > 0)" class="relations-container">
           <div v-if="word.synonyms && word.synonyms.length > 0" class="relation-group">
             <h4 class="relation-label synonym-label">
               <el-icon><Select /></el-icon> 近义词
@@ -154,6 +158,7 @@
             </div>
           </div>
         </div>
+        <el-empty v-else description="暂无近义词或反义词" :image-size="100" />
       </el-card>
       
       <!-- Related Actions -->
@@ -179,10 +184,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Share, Plus, Calendar, VideoPlay, Document, Connection, Select, Close } from '@element-plus/icons-vue'
+import { Share, Plus, Calendar, VideoPlay, Document, Connection, Select, Close, Loading } from '@element-plus/icons-vue'
 import type { Word, WordExample } from '@/types'
 import { wordApi } from '@/api/word'
 import { statsApi } from '@/api/study'
@@ -195,6 +200,8 @@ const word = ref<Word | null>(null)
 const examples = ref<WordExample[]>([])
 const loading = ref(false)
 const accent = ref<'en-US' | 'en-GB'>('en-US')
+const speaking = ref(false)
+const speakingLang = ref<'en-US' | 'en-GB' | null>(null)
 
 const allWordsMap = computed(() => {
   const map = new Map<string, number>()
@@ -216,14 +223,17 @@ const fetchWord = async () => {
   
   loading.value = true
   try {
-    const [wordData, exampleData] = await Promise.all([
-      wordApi.getWordById(id),
-      wordApi.getWordExamples(id)
-    ])
+    const wordData = await wordApi.getWordById(id)
     word.value = wordData
+  } catch (error) {
+    console.error('获取单词详情失败:', error)
+  }
+  try {
+    const exampleData = await wordApi.getWordExamples(id)
     examples.value = exampleData
   } catch (error) {
-    console.error(error)
+    console.error('获取例句失败:', error)
+    examples.value = []
   } finally {
     loading.value = false
   }
@@ -259,18 +269,51 @@ const speak = (lang: 'en-US' | 'en-GB') => {
   }
 
   window.speechSynthesis.cancel()
+
   const utterance = new SpeechSynthesisUtterance(word.value.word)
   utterance.lang = lang
   utterance.rate = 0.9
   utterance.pitch = 1
+  utterance.volume = 1
 
-  const voices = window.speechSynthesis.getVoices()
-  const matchedVoice = voices.find(v => v.lang === lang)
-  if (matchedVoice) {
-    utterance.voice = matchedVoice
+  utterance.onstart = () => {
+    speaking.value = true
+    speakingLang.value = lang
+  }
+  utterance.onend = () => {
+    speaking.value = false
+    speakingLang.value = null
+  }
+  utterance.onerror = () => {
+    speaking.value = false
+    speakingLang.value = null
   }
 
-  window.speechSynthesis.speak(utterance)
+  const trySpeak = () => {
+    const voices = window.speechSynthesis.getVoices()
+    let matchedVoice = voices.find(v => v.lang === lang)
+    if (!matchedVoice) {
+      matchedVoice = voices.find(v => v.lang.startsWith(lang.split('-')[0]))
+    }
+    if (matchedVoice) {
+      utterance.voice = matchedVoice
+    }
+    window.speechSynthesis.speak(utterance)
+  }
+
+  const voices = window.speechSynthesis.getVoices()
+  if (voices.length > 0) {
+    trySpeak()
+  } else {
+    window.speechSynthesis.onvoiceschanged = () => {
+      trySpeak()
+    }
+    setTimeout(() => {
+      if (!speaking.value) {
+        window.speechSynthesis.speak(utterance)
+      }
+    }, 500)
+  }
 }
 
 const escapeHtml = (text: string) => {
@@ -320,6 +363,16 @@ const handleExampleClick = (e: MouseEvent) => {
 const goToWord = (id: number) => {
   router.push(`/words/${id}`)
 }
+
+watch(
+  () => route.params.id,
+  (newId) => {
+    if (newId) {
+      examples.value = []
+      fetchWord()
+    }
+  }
+)
 
 onMounted(() => {
   fetchWord()
@@ -420,6 +473,40 @@ onMounted(() => {
   border-color: var(--c-primary);
   color: var(--c-primary);
   background: var(--c-primary-bg);
+}
+
+.pronounce-btn.speaking {
+  border-color: var(--c-success);
+  color: var(--c-success);
+  background: #ecfdf5;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  animation: speaking-pulse 1.2s ease-in-out infinite;
+}
+
+.icon-pulse {
+  display: inline-flex;
+}
+
+.icon-pulse .is-loading {
+  animation: rotate-spin 1s linear infinite;
+}
+
+@keyframes speaking-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.08);
+  }
+}
+
+@keyframes rotate-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .accent-label {
