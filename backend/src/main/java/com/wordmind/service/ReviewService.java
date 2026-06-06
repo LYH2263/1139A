@@ -369,56 +369,66 @@ public class ReviewService {
         LocalDate endDate = yearMonth.atEndOfMonth();
         LocalDateTime monthStart = startDate.atStartOfDay();
         LocalDateTime monthEnd = endDate.plusDays(1).atStartOfDay();
-        LocalDateTime todayStart = LocalDate.now().atStartOfDay();
-        LocalDateTime todayEnd = LocalDate.now().plusDays(1).atStartOfDay();
+        LocalDate today = LocalDate.now();
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.plusDays(1).atStartOfDay();
+        LocalDateTime now = LocalDateTime.now();
 
-        Map<LocalDate, List<ReviewRecord>> reviewedByDate = new HashMap<>();
+        Map<LocalDate, Set<Long>> reviewedWordIdsByDate = new HashMap<>();
         List<ReviewRecord> monthReviewed = reviewRecordRepository.findByUserIdAndDateRange(userId, monthStart, monthEnd);
         for (ReviewRecord rr : monthReviewed) {
             LocalDate date = rr.getCreatedAt().toLocalDate();
-            reviewedByDate.computeIfAbsent(date, k -> new ArrayList<>()).add(rr);
+            reviewedWordIdsByDate.computeIfAbsent(date, k -> new HashSet<>()).add(rr.getWordId());
         }
+
+        Map<LocalDate, Integer> reviewedCountByDate = new HashMap<>();
+        for (Map.Entry<LocalDate, Set<Long>> entry : reviewedWordIdsByDate.entrySet()) {
+            reviewedCountByDate.put(entry.getKey(), entry.getValue().size());
+        }
+
+        List<ReviewRecord> monthNextReviews = reviewRecordRepository.findUpcomingReviewsByDateRange(userId, monthStart, monthEnd);
 
         Map<LocalDate, List<ReviewRecord>> pendingByDate = new HashMap<>();
-        List<ReviewRecord> allRecords = reviewRecordRepository.findAllByUserId(userId);
-        LocalDateTime now = LocalDateTime.now();
+        Map<LocalDate, List<ReviewRecord>> predictedByDate = new HashMap<>();
+        Map<LocalDate, List<ReviewRecord>> missedByDate = new HashMap<>();
 
-        for (ReviewRecord rr : allRecords) {
-            if (rr.getNextReviewAt() != null) {
-                LocalDate nextReviewDate = rr.getNextReviewAt().toLocalDate();
-                if (!nextReviewDate.isBefore(startDate) && !nextReviewDate.isAfter(endDate)) {
-                    if (rr.getNextReviewAt().isBefore(now) || 
-                        (rr.getNextReviewAt().isAfter(todayStart) && rr.getNextReviewAt().isBefore(todayEnd))) {
+        for (ReviewRecord rr : monthNextReviews) {
+            if (rr.getNextReviewAt() == null) continue;
+            LocalDate nextReviewDate = rr.getNextReviewAt().toLocalDate();
+
+            if (nextReviewDate.isBefore(today)) {
+                Set<Long> reviewedIds = reviewedWordIdsByDate.get(nextReviewDate);
+                if (reviewedIds == null || !reviewedIds.contains(rr.getWordId())) {
+                    missedByDate.computeIfAbsent(nextReviewDate, k -> new ArrayList<>()).add(rr);
+                }
+            } else if (nextReviewDate.equals(today)) {
+                if (rr.getNextReviewAt().isBefore(now)) {
+                    Set<Long> reviewedIds = reviewedWordIdsByDate.get(nextReviewDate);
+                    if (reviewedIds == null || !reviewedIds.contains(rr.getWordId())) {
                         pendingByDate.computeIfAbsent(nextReviewDate, k -> new ArrayList<>()).add(rr);
                     }
+                } else {
+                    pendingByDate.computeIfAbsent(nextReviewDate, k -> new ArrayList<>()).add(rr);
                 }
-            }
-        }
-
-        Map<LocalDate, List<ReviewRecord>> predictedByDate = new HashMap<>();
-        for (ReviewRecord rr : allRecords) {
-            if (rr.getNextReviewAt() != null) {
-                LocalDate nextReviewDate = rr.getNextReviewAt().toLocalDate();
-                if (!nextReviewDate.isBefore(startDate) && !nextReviewDate.isAfter(endDate)) {
-                    if (rr.getNextReviewAt().isAfter(todayEnd)) {
-                        predictedByDate.computeIfAbsent(nextReviewDate, k -> new ArrayList<>()).add(rr);
-                    }
-                }
+            } else {
+                predictedByDate.computeIfAbsent(nextReviewDate, k -> new ArrayList<>()).add(rr);
             }
         }
 
         List<ReviewDTO.CalendarDayStats> days = new ArrayList<>();
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            int reviewedCount = reviewedByDate.getOrDefault(date, Collections.emptyList()).size();
+            int reviewedCount = reviewedCountByDate.getOrDefault(date, 0);
             int pendingCount = pendingByDate.getOrDefault(date, Collections.emptyList()).size();
             int predictedCount = predictedByDate.getOrDefault(date, Collections.emptyList()).size();
-            int totalCount = reviewedCount + pendingCount + predictedCount;
+            int missedCount = missedByDate.getOrDefault(date, Collections.emptyList()).size();
+            int totalCount = reviewedCount + pendingCount + predictedCount + missedCount;
 
             days.add(ReviewDTO.CalendarDayStats.builder()
                     .date(date.toString())
                     .reviewedCount(reviewedCount)
                     .pendingCount(pendingCount)
                     .predictedCount(predictedCount)
+                    .missedCount(missedCount)
                     .totalCount(totalCount)
                     .build());
         }
@@ -434,16 +444,18 @@ public class ReviewService {
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
         LocalDateTime now = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
 
         List<ReviewRecord> dayReviewed = reviewRecordRepository.findByUserIdAndDateRange(userId, dayStart, dayEnd);
         Map<Long, ReviewRecord> latestReviewed = new HashMap<>();
         for (ReviewRecord rr : dayReviewed) {
             Long wordId = rr.getWordId();
-            if (!latestReviewed.containsKey(wordId) || 
+            if (!latestReviewed.containsKey(wordId) ||
                 rr.getCreatedAt().isAfter(latestReviewed.get(wordId).getCreatedAt())) {
                 latestReviewed.put(wordId, rr);
             }
         }
+        Set<Long> reviewedWordIds = latestReviewed.keySet();
 
         List<ReviewDTO.CalendarDayWord> reviewedWords = new ArrayList<>();
         for (ReviewRecord rr : latestReviewed.values()) {
@@ -465,62 +477,76 @@ public class ReviewService {
         reviewedWords.sort((a, b) -> b.getReviewedAt().compareTo(a.getReviewedAt()));
 
         List<ReviewDTO.CalendarDayWord> pendingWords = new ArrayList<>();
-        boolean isFutureOrToday = !date.isBefore(LocalDate.now());
-        if (isFutureOrToday) {
-            List<ReviewRecord> allRecords = reviewRecordRepository.findAllByUserId(userId);
-            Set<Long> reviewedTodayIds = latestReviewed.keySet();
+        List<ReviewDTO.CalendarDayWord> missedWords = new ArrayList<>();
 
-            for (ReviewRecord rr : allRecords) {
-                if (rr.getNextReviewAt() != null && !reviewedTodayIds.contains(rr.getWordId())) {
-                    LocalDate nextReviewDate = rr.getNextReviewAt().toLocalDate();
-                    if (nextReviewDate.equals(date)) {
-                        if (date.equals(LocalDate.now()) && rr.getNextReviewAt().isAfter(now)) {
-                            Word word = wordRepository.findById(rr.getWordId()).orElse(null);
-                            if (word != null) {
-                                pendingWords.add(ReviewDTO.CalendarDayWord.builder()
-                                        .wordId(word.getId())
-                                        .word(word.getWord())
-                                        .phonetic(word.getPhonetic())
-                                        .meaning(word.getMeaning())
-                                        .proficiency(rr.getProficiency())
-                                        .status("PENDING")
-                                        .result(null)
-                                        .nextReviewAt(rr.getNextReviewAt())
-                                        .reviewedAt(null)
-                                        .build());
-                            }
-                        } else if (date.isAfter(LocalDate.now())) {
-                            Word word = wordRepository.findById(rr.getWordId()).orElse(null);
-                            if (word != null) {
-                                pendingWords.add(ReviewDTO.CalendarDayWord.builder()
-                                        .wordId(word.getId())
-                                        .word(word.getWord())
-                                        .phonetic(word.getPhonetic())
-                                        .meaning(word.getMeaning())
-                                        .proficiency(rr.getProficiency())
-                                        .status("PREDICTED")
-                                        .result(null)
-                                        .nextReviewAt(rr.getNextReviewAt())
-                                        .reviewedAt(null)
-                                        .build());
-                            }
-                        }
-                    }
-                }
+        List<ReviewRecord> dayNextReviews = reviewRecordRepository.findUpcomingReviewsByDateRange(userId, dayStart, dayEnd);
+
+        for (ReviewRecord rr : dayNextReviews) {
+            if (rr.getNextReviewAt() == null) continue;
+            if (reviewedWordIds.contains(rr.getWordId())) continue;
+
+            Word word = wordRepository.findById(rr.getWordId()).orElse(null);
+            if (word == null) continue;
+
+            if (date.isBefore(today)) {
+                missedWords.add(ReviewDTO.CalendarDayWord.builder()
+                        .wordId(word.getId())
+                        .word(word.getWord())
+                        .phonetic(word.getPhonetic())
+                        .meaning(word.getMeaning())
+                        .proficiency(rr.getProficiency())
+                        .status("MISSED")
+                        .result(null)
+                        .nextReviewAt(rr.getNextReviewAt())
+                        .reviewedAt(null)
+                        .build());
+            } else if (date.equals(today)) {
+                pendingWords.add(ReviewDTO.CalendarDayWord.builder()
+                        .wordId(word.getId())
+                        .word(word.getWord())
+                        .phonetic(word.getPhonetic())
+                        .meaning(word.getMeaning())
+                        .proficiency(rr.getProficiency())
+                        .status("PENDING")
+                        .result(null)
+                        .nextReviewAt(rr.getNextReviewAt())
+                        .reviewedAt(null)
+                        .build());
+            } else {
+                pendingWords.add(ReviewDTO.CalendarDayWord.builder()
+                        .wordId(word.getId())
+                        .word(word.getWord())
+                        .phonetic(word.getPhonetic())
+                        .meaning(word.getMeaning())
+                        .proficiency(rr.getProficiency())
+                        .status("PREDICTED")
+                        .result(null)
+                        .nextReviewAt(rr.getNextReviewAt())
+                        .reviewedAt(null)
+                        .build());
             }
-            pendingWords.sort((a, b) -> {
-                if (a.getNextReviewAt() == null) return 1;
-                if (b.getNextReviewAt() == null) return -1;
-                return a.getNextReviewAt().compareTo(b.getNextReviewAt());
-            });
         }
+
+        pendingWords.sort((a, b) -> {
+            if (a.getNextReviewAt() == null) return 1;
+            if (b.getNextReviewAt() == null) return -1;
+            return a.getNextReviewAt().compareTo(b.getNextReviewAt());
+        });
+
+        missedWords.sort((a, b) -> {
+            if (a.getNextReviewAt() == null) return 1;
+            if (b.getNextReviewAt() == null) return -1;
+            return a.getNextReviewAt().compareTo(b.getNextReviewAt());
+        });
 
         return ReviewDTO.CalendarDayDetail.builder()
                 .date(dateStr)
                 .reviewedWords(reviewedWords)
                 .pendingWords(pendingWords)
+                .missedWords(missedWords)
                 .reviewedCount(reviewedWords.size())
                 .pendingCount(pendingWords.size())
+                .missedCount(missedWords.size())
                 .build();
     }
 }

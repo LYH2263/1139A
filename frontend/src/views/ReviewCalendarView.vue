@@ -69,6 +69,9 @@
               <span v-if="cell.stats.reviewedCount > 0" class="detail-item reviewed">
                 ✓ {{ cell.stats.reviewedCount }}
               </span>
+              <span v-if="cell.stats.missedCount > 0" class="detail-item missed">
+                ✗ {{ cell.stats.missedCount }}
+              </span>
               <span v-if="cell.stats.pendingCount > 0" class="detail-item pending">
                 ⏰ {{ cell.stats.pendingCount }}
               </span>
@@ -88,6 +91,9 @@
               <div class="detail-summary">
                 <el-tag v-if="dayDetail.reviewedCount > 0" type="success" size="small">
                   已复习 {{ dayDetail.reviewedCount }}
+                </el-tag>
+                <el-tag v-if="dayDetail.missedCount > 0" type="danger" size="small">
+                  漏掉 {{ dayDetail.missedCount }}
                 </el-tag>
                 <el-tag v-if="dayDetail.pendingCount > 0" type="warning" size="small">
                   待复习 {{ dayDetail.pendingCount }}
@@ -129,6 +135,33 @@
               </div>
             </div>
 
+            <div v-if="dayDetail.missedWords && dayDetail.missedWords.length > 0" class="word-section">
+              <h4 class="section-title missed-title">
+                <el-icon><CircleClose /></el-icon>
+                漏掉未复习
+              </h4>
+              <div class="word-list">
+                <div
+                  v-for="word in dayDetail.missedWords"
+                  :key="'m-' + word.wordId"
+                  class="word-item missed"
+                >
+                  <div class="word-main">
+                    <span class="word">{{ word.word }}</span>
+                    <span v-if="word.phonetic" class="phonetic">/{{ word.phonetic }}/</span>
+                    <el-tag size="small" type="danger">漏掉</el-tag>
+                  </div>
+                  <div class="word-meaning">{{ word.meaning }}</div>
+                  <div class="word-meta">
+                    <span>熟练度: {{ word.proficiency }}/5</span>
+                    <span v-if="word.nextReviewAt">
+                      应复习: {{ formatTime(word.nextReviewAt) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div v-if="dayDetail.pendingWords.length > 0" class="word-section">
               <h4 class="section-title pending-title">
                 <el-icon><Clock /></el-icon>
@@ -159,7 +192,7 @@
             </div>
 
             <EmptyState
-              v-if="dayDetail.reviewedWords.length === 0 && dayDetail.pendingWords.length === 0"
+              v-if="dayDetail.reviewedWords.length === 0 && dayDetail.pendingWords.length === 0 && (!dayDetail.missedWords || dayDetail.missedWords.length === 0)"
               title="暂无数据"
               description="这一天没有复习记录也没有待复习的单词。"
               icon="Calendar"
@@ -176,7 +209,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  ArrowLeft, ArrowRight, Back, Close, CircleCheck, Clock
+  ArrowLeft, ArrowRight, Back, Close, CircleCheck, CircleClose, Clock
 } from '@element-plus/icons-vue'
 import { reviewApi } from '@/api/study'
 import type { CalendarDayStats, CalendarDayDetail, CalendarMonthResponse } from '@/types'
@@ -560,6 +593,7 @@ onMounted(() => {
 }
 
 .detail-item.reviewed { color: var(--c-success); }
+.detail-item.missed { color: var(--c-danger); }
 .detail-item.pending { color: var(--c-warning); }
 .detail-item.predicted { color: var(--c-info); }
 
@@ -619,6 +653,7 @@ onMounted(() => {
 }
 
 .reviewed-title { color: var(--c-success); }
+.missed-title { color: var(--c-danger); }
 .pending-title { color: var(--c-warning); }
 
 .word-list {
@@ -636,6 +671,10 @@ onMounted(() => {
 
 .word-item.reviewed {
   border-left-color: var(--c-success);
+}
+
+.word-item.missed {
+  border-left-color: var(--c-danger);
 }
 
 .word-item.pending {

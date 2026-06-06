@@ -129,6 +129,7 @@ public class ReviewDTO {
         private Integer reviewedCount;
         private Integer pendingCount;
         private Integer predictedCount;
+        private Integer missedCount;
         private Integer totalCount;
     }
 
@@ -149,7 +150,9 @@ public class ReviewDTO {
         private String date;
         private List<CalendarDayWord> reviewedWords;
         private List<CalendarDayWord> pendingWords;
+        private List<CalendarDayWord> missedWords;
         private Integer reviewedCount;
         private Integer pendingCount;
+        private Integer missedCount;
     }
 }

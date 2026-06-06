@@ -507,7 +507,7 @@ export interface CalendarDayWord {
   phonetic?: string
   meaning: string
   proficiency: number
-  status: 'REVIEWED' | 'PENDING' | 'PREDICTED'
+  status: 'REVIEWED' | 'PENDING' | 'PREDICTED' | 'MISSED'
   result?: string
   nextReviewAt?: string
   reviewedAt?: string
@@ -518,6 +518,7 @@ export interface CalendarDayStats {
   reviewedCount: number
   pendingCount: number
   predictedCount: number
+  missedCount: number
   totalCount: number
 }
 
@@ -530,6 +531,8 @@ export interface CalendarDayDetail {
   date: string
   reviewedWords: CalendarDayWord[]
   pendingWords: CalendarDayWord[]
+  missedWords: CalendarDayWord[]
   reviewedCount: number
   pendingCount: number
+  missedCount: number
 }
