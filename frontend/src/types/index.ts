@@ -28,6 +28,22 @@ export interface RegisterRequest {
   email?: string
 }
 
+export interface WordExample {
+  id: number
+  wordId: number
+  sentence: string
+  translation?: string
+  scene?: string
+  createdAt?: string
+}
+
+export interface RelatedWord {
+  id: number
+  word: string
+  meaning: string
+  relationType: string
+}
+
 export interface Word {
   id: number
   word: string
@@ -37,6 +53,8 @@ export interface Word {
   example?: string
   memoryTip?: string
   createdAt?: string
+  synonyms?: RelatedWord[]
+  antonyms?: RelatedWord[]
 }
 
 export interface WordListResponse {

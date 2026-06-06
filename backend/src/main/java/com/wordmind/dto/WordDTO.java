@@ -65,6 +65,30 @@ public class WordDTO {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    public static class ExampleResponse {
+        private Long id;
+        private Long wordId;
+        private String sentence;
+        private String translation;
+        private String scene;
+        private LocalDateTime createdAt;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RelatedWord {
+        private Long id;
+        private String word;
+        private String meaning;
+        private String relationType;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class Response {
         private Long id;
         private String word;
@@ -74,6 +98,8 @@ public class WordDTO {
         private String example;
         private String memoryTip;
         private LocalDateTime createdAt;
+        private java.util.List<RelatedWord> synonyms;
+        private java.util.List<RelatedWord> antonyms;
     }
     
     @Data

@@ -1,5 +1,5 @@
 import api from './request'
-import type { Word, WordListResponse } from '@/types'
+import type { Word, WordListResponse, WordExample } from '@/types'
 
 export const wordApi = {
   getWords: (params?: { keyword?: string; pos?: string; page?: number; size?: number }): Promise<WordListResponse> => {
@@ -8,6 +8,10 @@ export const wordApi = {
 
   getWordById: (id: number): Promise<Word> => {
     return api.get(`/words/${id}`)
+  },
+
+  getWordExamples: (id: number): Promise<WordExample[]> => {
+    return api.get(`/words/${id}/examples`)
   },
 
   createWord: (data: Partial<Word>): Promise<Word> => {

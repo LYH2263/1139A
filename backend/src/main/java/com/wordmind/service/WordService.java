@@ -2,6 +2,10 @@ package com.wordmind.service;
 
 import com.wordmind.dto.WordDTO;
 import com.wordmind.entity.Word;
+import com.wordmind.entity.WordExample;
+import com.wordmind.entity.WordRelation;
+import com.wordmind.repository.WordExampleRepository;
+import com.wordmind.repository.WordRelationRepository;
 import com.wordmind.repository.WordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -10,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +23,12 @@ public class WordService {
     
     @Autowired
     private WordRepository wordRepository;
+
+    @Autowired
+    private WordExampleRepository wordExampleRepository;
+
+    @Autowired
+    private WordRelationRepository wordRelationRepository;
     
     public WordDTO.ListResponse getWords(String keyword, String pos, int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size);
@@ -38,7 +49,17 @@ public class WordService {
     public WordDTO.Response getWordById(Long id) {
         Word word = wordRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("单词不存在"));
-        return convertToDTO(word);
+        return convertToDetailDTO(word);
+    }
+
+    public List<WordDTO.ExampleResponse> getWordExamples(Long wordId) {
+        if (!wordRepository.existsById(wordId)) {
+            throw new RuntimeException("单词不存在");
+        }
+        List<WordExample> examples = wordExampleRepository.findByWordIdOrderByIdAsc(wordId);
+        return examples.stream()
+                .map(this::convertToExampleDTO)
+                .collect(Collectors.toList());
     }
     
     @Transactional
@@ -88,6 +109,56 @@ public class WordService {
                 .example(word.getExample())
                 .memoryTip(word.getMemoryTip())
                 .createdAt(word.getCreatedAt())
+                .synonyms(new ArrayList<>())
+                .antonyms(new ArrayList<>())
+                .build();
+    }
+
+    private WordDTO.Response convertToDetailDTO(Word word) {
+        WordDTO.Response dto = convertToDTO(word);
+        List<WordRelation> relations = wordRelationRepository.findByWordId(word.getId());
+
+        List<WordDTO.RelatedWord> synonyms = new ArrayList<>();
+        List<WordDTO.RelatedWord> antonyms = new ArrayList<>();
+
+        for (WordRelation relation : relations) {
+            Long relatedWordId;
+            if (relation.getSourceWordId().equals(word.getId())) {
+                relatedWordId = relation.getTargetWordId();
+            } else {
+                relatedWordId = relation.getSourceWordId();
+            }
+
+            Word relatedWord = wordRepository.findById(relatedWordId).orElse(null);
+            if (relatedWord == null) continue;
+
+            WordDTO.RelatedWord related = WordDTO.RelatedWord.builder()
+                    .id(relatedWord.getId())
+                    .word(relatedWord.getWord())
+                    .meaning(relatedWord.getMeaning())
+                    .relationType(relation.getRelationType().name())
+                    .build();
+
+            if (relation.getRelationType() == WordRelation.RelationType.SYNONYM) {
+                synonyms.add(related);
+            } else if (relation.getRelationType() == WordRelation.RelationType.ANTONYM) {
+                antonyms.add(related);
+            }
+        }
+
+        dto.setSynonyms(synonyms);
+        dto.setAntonyms(antonyms);
+        return dto;
+    }
+
+    private WordDTO.ExampleResponse convertToExampleDTO(WordExample example) {
+        return WordDTO.ExampleResponse.builder()
+                .id(example.getId())
+                .wordId(example.getWordId())
+                .sentence(example.getSentence())
+                .translation(example.getTranslation())
+                .scene(example.getScene())
+                .createdAt(example.getCreatedAt())
                 .build();
     }
 }

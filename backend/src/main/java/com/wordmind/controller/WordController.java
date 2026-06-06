@@ -8,6 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/words")
@@ -30,5 +31,11 @@ public class WordController {
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ApiResponse<WordDTO.Response> getWordById(@PathVariable Long id) {
         return ApiResponse.success(wordService.getWordById(id));
+    }
+
+    @GetMapping("/{id}/examples")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public ApiResponse<List<WordDTO.ExampleResponse>> getWordExamples(@PathVariable Long id) {
+        return ApiResponse.success(wordService.getWordExamples(id));
     }
 }
